@@ -21,7 +21,7 @@ Còn nhiều tính năng khác để chờ bạn khám phá...
 
 >[WebP Imaging Extension](https://apps.microsoft.com/detail/9pg2dk419drg) thường được tích hợp sẵn trong hệ thống của bạn. Nếu ứng dụng không hiển thị đúng hình nền, vui lòng đảm bảo rằng tiện ích này đã được cài đặt.
 
-Tiếp theo, tải xuống gói dành cho kiến ​​trúc CPU của bạn từ [GitHub Release](https://github.com/Scighost/Nebula/releases). Giải nén nó, sau đó chạy `Nebula.exe` và làm theo hướng dẫn.
+Tiếp theo, tải xuống gói dành cho kiến ​​trúc CPU của bạn từ [GitHub Release](https://github.com/Anoth3rr/Nebula/releases). Giải nén nó, sau đó chạy `Nebula.exe` và làm theo hướng dẫn.
 
 ## Dịch thuật
 
@@ -55,8 +55,8 @@ Phát triển không phải là dễ dàng. Nếu bạn nghĩ Nebula hữu ích,
 ## Cảm ơn
 
 <picture>
-    <source srcset="https://github.com/Scighost/Nebula/assets/61003590/9d369ec3-ab7c-408f-88c2-11bfe4453208" type="image/avif" />
-    <img src="https://github.com/Scighost/Nebula/assets/61003590/44552992-e2c5-451f-9c2a-73176e8e4e93" width="240px" />
+    <source srcset="https://github.com/Anoth3rr/Nebula/assets/61003590/9d369ec3-ab7c-408f-88c2-11bfe4453208" type="image/avif" />
+    <img src="https://github.com/Anoth3rr/Nebula/assets/61003590/44552992-e2c5-451f-9c2a-73176e8e4e93" width="240px" />
 </picture>
 
 Đầu tiên, tôi xin gửi lời cảm ơn chân thành nhất tới tất cả những người đóng góp và dịch giả của dự án này. Nebula chỉ có thể trở nên tốt hơn nhờ có bạn.

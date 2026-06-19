@@ -259,7 +259,8 @@ internal static class DatabaseService
         Sql_v19,
         Sql_v20,
         Sql_v21,
-        Sql_v22
+        Sql_v22,
+        Sql_v23
     ];
 
 
@@ -1094,6 +1095,22 @@ internal static class DatabaseService
         CREATE INDEX IF NOT EXISTS IX_WutheringWavesGachaInfo_Name ON WutheringWavesGachaInfo (Name);
 
         PRAGMA USER_VERSION = 22;
+        COMMIT TRANSACTION;
+        """;
+
+    private const string Sql_v23 = """
+        BEGIN TRANSACTION;
+
+        CREATE TABLE IF NOT EXISTS EndfieldGachaInfo
+        (
+            Id          INTEGER NOT NULL PRIMARY KEY,
+            Name        TEXT    NOT NULL,
+            Icon        TEXT,
+            CatalogueId INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS IX_EndfieldGachaInfo_Name ON EndfieldGachaInfo (Name);
+
+        PRAGMA USER_VERSION = 23;
         COMMIT TRANSACTION;
         """;
     #endregion

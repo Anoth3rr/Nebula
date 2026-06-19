@@ -52,7 +52,14 @@ internal class EndfieldGachaService : ThirdPartyGachaService
     public override List<GachaLogItemEx> GetGachaLogItemEx(long uid)
     {
         using var dapper = DatabaseService.CreateConnection();
-        var list = dapper.Query<GachaLogItemEx>($"SELECT * FROM {GachaTableName} WHERE Uid = @uid ORDER BY Time, Id;", new { uid }).ToList();
+        var list = dapper.Query<GachaLogItemEx>("""
+            SELECT item.*, COALESCE(infoById.Icon, infoByName.Icon) Icon
+            FROM EndfieldGachaItem item
+            LEFT JOIN EndfieldGachaInfo infoById ON item.ItemId = infoById.Id
+            LEFT JOIN EndfieldGachaInfo infoByName ON item.Name = infoByName.Name
+            WHERE Uid = @uid
+            ORDER BY item.Time, item.Id;
+            """, new { uid }).ToList();
         foreach (IGachaType type in QueryGachaTypes)
         {
             var typedItems = GetGachaLogItemsByQueryType(list, type);
@@ -69,6 +76,14 @@ internal class EndfieldGachaService : ThirdPartyGachaService
             }
         }
         return list;
+    }
+
+
+    protected override int InsertGachaLogItems(List<GachaLogItem> items)
+    {
+        var affect = base.InsertGachaLogItems(items);
+        UpdateGachaItemId();
+        return affect;
     }
 
 
@@ -140,14 +155,49 @@ internal class EndfieldGachaService : ThirdPartyGachaService
                 });
                 statsList.Add(stats);
             }
-            groupStats = allItems.GroupBy(x => x.ItemId)
-                                 .Select(x => { var item = x.First(); item.ItemCount = x.Count(); return item; })
+            groupStats = allItems.GroupBy(x => x.ItemId > 0 ? $"id:{x.ItemId}" : $"name:{x.Name}")
+                                 .Select(x =>
+                                 {
+                                     var item = x.OrderByDescending(y => !string.IsNullOrWhiteSpace(y.Icon))
+                                                 .ThenByDescending(y => y.Time)
+                                                 .First();
+                                     item.ItemCount = x.Count();
+                                     return item;
+                                 })
                                  .OrderByDescending(x => x.RankType)
                                  .ThenByDescending(x => x.ItemCount)
                                  .ThenByDescending(x => x.Time)
                                  .ToList();
         }
         return (statsList, groupStats);
+    }
+
+
+    public override async Task<string> UpdateGachaInfoAsync(GameBiz gameBiz, string lang, CancellationToken cancellationToken = default)
+    {
+        var data = await _endfieldClient.GetEndfieldGachaInfoAsync(cancellationToken);
+        using var dapper = DatabaseService.CreateConnection();
+        using var t = dapper.BeginTransaction();
+        dapper.Execute("""
+            INSERT OR REPLACE INTO EndfieldGachaInfo (Id, Name, Icon, CatalogueId)
+            VALUES (@Id, @Name, @Icon, @CatalogueId);
+            """, data, t);
+        t.Commit();
+        UpdateGachaItemId();
+        return "zh-cn";
+    }
+
+
+    public override async Task<(string Language, int Count)> ChangeGachaItemNameAsync(GameBiz gameBiz, string lang, CancellationToken cancellationToken = default)
+    {
+        lang = await UpdateGachaInfoAsync(gameBiz, lang, cancellationToken);
+        using var dapper = DatabaseService.CreateConnection();
+        int count = dapper.Execute("""
+            INSERT OR REPLACE INTO EndfieldGachaItem (Uid, Id, Name, Time, ItemId, ItemType, RankType, GachaType, Count, Lang)
+            SELECT item.Uid, item.Id, info.Name, Time, item.ItemId, ItemType, RankType, GachaType, Count, @Lang
+            FROM EndfieldGachaItem item INNER JOIN EndfieldGachaInfo info ON item.ItemId = info.Id;
+            """, new { Lang = lang });
+        return (lang, count);
     }
 
 
@@ -219,6 +269,20 @@ internal class EndfieldGachaService : ThirdPartyGachaService
         var newCount = dapper.QueryFirstOrDefault<int>($"SELECT COUNT(*) FROM {GachaTableName} WHERE Uid = @Uid;", new { Uid = account.Uid });
         progress?.Report(string.Format(Lang.GachaLogService_GetGachaResult, list.Count, newCount - oldCount));
         return account.Uid;
+    }
+
+
+    private static void UpdateGachaItemId()
+    {
+        using var dapper = DatabaseService.CreateConnection();
+        dapper.Execute("""
+            INSERT OR REPLACE INTO EndfieldGachaItem (Uid, Id, Name, Time, ItemId, ItemType, RankType, GachaType, Count, Lang)
+            SELECT item.Uid, item.Id, item.Name, Time, info.Id, ItemType, RankType, GachaType, Count, Lang
+            FROM EndfieldGachaItem item
+            INNER JOIN EndfieldGachaInfo info ON item.Name = info.Name
+            LEFT JOIN EndfieldGachaInfo existingInfo ON item.ItemId = existingInfo.Id
+            WHERE item.ItemId = 0 OR existingInfo.Id IS NULL;
+            """);
     }
 
 

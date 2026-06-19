@@ -145,10 +145,10 @@ int wmain(int argc, wchar_t *argv[])
 	else
 	{
 		SetProcessDPIAware();
-		int ok = MessageBox(NULL, L"Nebula files not found.\r\nWould you like to download it now?\r\nhttps://github.com/Scighost/Nebula", L"Nebula", MB_ICONWARNING | MB_OKCANCEL);
+		int ok = MessageBox(NULL, L"Nebula files not found.\r\nWould you like to download it now?\r\nhttps://github.com/Anoth3rr/Nebula", L"Nebula", MB_ICONWARNING | MB_OKCANCEL);
 		if (ok == IDOK)
 		{
-			ShellExecute(NULL, NULL, L"https://github.com/Scighost/Nebula", NULL, NULL, SW_SHOWNORMAL);
+			ShellExecute(NULL, NULL, L"https://github.com/Anoth3rr/Nebula", NULL, NULL, SW_SHOWNORMAL);
 		}
 	}
 }

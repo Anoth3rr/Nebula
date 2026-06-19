@@ -15,6 +15,25 @@ Nebula is an open-source third-party launcher developed to address the shortcomi
 More features are left for you to explore...
 
 
+## Fork Notice
+
+This project is fork from [Scighost/Starward](https://github.com/Scighost/Starward). It also references ideas and implementations from [wuwatracker/wuwatracker](https://github.com/wuwatracker/wuwatracker) and [bhaoo/endfield-gacha](https://github.com/bhaoo/endfield-gacha).
+
+
+## Changelog
+
+### v0.0.0
+
+Compared with [Scighost/Starward](https://github.com/Scighost/Starward):
+
+- Rebranded the project as Nebula and updated project, release, issue, update, metadata, documentation, and installer links to [Anoth3rr/Nebula](https://github.com/Anoth3rr/Nebula).
+- Added support entries for Arknights, Arknights: Endfield, and Wuthering Waves, including Mainland China and Global game identifiers where available.
+- Added Wuthering Waves gacha record support, with item metadata and query logic referenced from [wuwatracker/wuwatracker](https://github.com/wuwatracker/wuwatracker).
+- Added Arknights: Endfield gacha record support, including account binding, token-based query flow, character and weapon pool parsing, and import/statistics integration, with reference to [bhaoo/endfield-gacha](https://github.com/bhaoo/endfield-gacha).
+- Added Endfield item metadata synchronization from Skland Wiki, local `EndfieldGachaInfo` storage, icon matching, and item-name refresh for existing gacha records.
+- Extended URL protocol documentation with `endfield_cn`, `endfield_global`, `wutheringwaves_cn`, and `wutheringwaves_global` game identifiers.
+
+
 ## Install
 
 First, your device needs to meet the following requirements:
@@ -26,7 +45,7 @@ First, your device needs to meet the following requirements:
 
 >[WebP Imaging Extension](https://apps.microsoft.com/detail/9pg2dk419drg) is typically bundled with your system. If the application isn’t displaying background images correctly, please ensure it’s installed.
 
-Next, download the package for your CPU architecture from [GitHub Release](https://github.com/Scighost/Nebula/releases). Extract it, then run `Nebula.exe` and follow the prompts.
+Next, download the package for your CPU architecture from [GitHub Release](https://github.com/Anoth3rr/Nebula/releases). Extract it, then run `Nebula.exe` and follow the prompts.
 
 
 ## Localization
@@ -64,8 +83,8 @@ Development is not easy. If you think Nebula useful, you cloud donate me at http
 ## Thanks
 
 <picture>
-    <source srcset="https://github.com/Scighost/Nebula/assets/61003590/9d369ec3-ab7c-408f-88c2-11bfe4453208" type="image/avif" />
-    <img src="https://github.com/Scighost/Nebula/assets/61003590/44552992-e2c5-451f-9c2a-73176e8e4e93" width="240px" />
+    <source srcset="https://github.com/Anoth3rr/Nebula/assets/61003590/9d369ec3-ab7c-408f-88c2-11bfe4453208" type="image/avif" />
+    <img src="https://github.com/Anoth3rr/Nebula/assets/61003590/44552992-e2c5-451f-9c2a-73176e8e4e93" width="240px" />
 </picture>
 
 First of all, I would like to express my sincerest thanks to all the contributors and translators of this project. Nebula can only become better because of you.

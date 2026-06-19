@@ -1,10 +1,13 @@
 using Microsoft.Win32;
+using Nebula.Core.Gacha.Endfield;
 using Nebula.Core.Gacha.Genshin;
 using Nebula.Core.Gacha.StarRail;
 using Nebula.Core.Gacha.WutheringWaves;
 using Nebula.Core.Gacha.ZZZ;
+using System.Globalization;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Runtime.Versioning;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -423,6 +426,93 @@ public abstract class GachaLogClient
         list.AddRange(await GetWutheringWavesCatalogueItemsAsync(1105, cancellationToken));
         list.AddRange(await GetWutheringWavesCatalogueItemsAsync(1106, cancellationToken));
         return list;
+    }
+
+
+    public async Task<List<EndfieldGachaInfo>> GetEndfieldGachaInfoAsync(CancellationToken cancellationToken = default)
+    {
+        var list = new List<EndfieldGachaInfo>();
+        list.AddRange(await GetEndfieldCatalogueItemsAsync(1, cancellationToken));
+        list.AddRange(await GetEndfieldCatalogueItemsAsync(2, cancellationToken));
+        return list;
+    }
+
+
+    private async Task<List<EndfieldGachaInfo>> GetEndfieldCatalogueItemsAsync(int subTypeId, CancellationToken cancellationToken)
+    {
+        const string host = "https://zonai.skland.com";
+        const string path = "/web/v1/wiki/item/catalog";
+        string query = $"typeMainId=1&typeSubId={subTypeId.ToString(CultureInfo.InvariantCulture)}";
+        var auth = await GetSklandAuthAsync(host, cancellationToken);
+        string timestamp = auth.Timestamp ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
+        string sign = CreateSklandSign(auth.Token, path, query, timestamp);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{host}{path}?{query}");
+        request.Headers.TryAddWithoutValidation("origin", "https://wiki.skland.com");
+        request.Headers.Referrer = new Uri("https://wiki.skland.com/");
+        request.Headers.TryAddWithoutValidation("cred", auth.Token);
+        request.Headers.TryAddWithoutValidation("platform", "3");
+        request.Headers.TryAddWithoutValidation("timestamp", timestamp);
+        request.Headers.TryAddWithoutValidation("vName", "1.0.0");
+        request.Headers.TryAddWithoutValidation("sign", sign);
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        var wrapper = await response.Content.ReadFromJsonAsync(typeof(SklandWikiCatalogResponse), GachaLogJsonContext.Default, cancellationToken) as SklandWikiCatalogResponse;
+        if (wrapper is null)
+        {
+            throw new miHoYoApiException(-1, "Skland wiki catalog response is empty.");
+        }
+        if (!response.IsSuccessStatusCode || wrapper.Code != 0)
+        {
+            throw new miHoYoApiException(wrapper.Code == 0 ? (int)response.StatusCode : wrapper.Code, wrapper.Message ?? "Cannot get Endfield wiki catalog.");
+        }
+
+        return wrapper.Data?.Catalog
+                      .SelectMany(x => x.TypeSub)
+                      .Where(x => x.Id == subTypeId.ToString(CultureInfo.InvariantCulture))
+                      .SelectMany(x => x.Items)
+                      .Select(x => new EndfieldGachaInfo
+                      {
+                          Id = x.ItemId,
+                          Name = x.Name ?? "",
+                          Icon = x.Brief?.Cover ?? "",
+                          CatalogueId = subTypeId,
+                      })
+                      .Where(x => x.Id > 0 && !string.IsNullOrWhiteSpace(x.Name) && !string.IsNullOrWhiteSpace(x.Icon))
+                      .ToList() ?? [];
+    }
+
+
+    private async Task<(string Token, string? Timestamp)> GetSklandAuthAsync(string host, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{host}/web/v1/auth/refresh");
+        request.Headers.TryAddWithoutValidation("origin", "https://wiki.skland.com");
+        request.Headers.Referrer = new Uri("https://wiki.skland.com/");
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        var auth = await response.Content.ReadFromJsonAsync(typeof(SklandAuthResponse), GachaLogJsonContext.Default, cancellationToken) as SklandAuthResponse;
+        if (auth is null)
+        {
+            throw new miHoYoApiException(-1, "Skland auth response is empty.");
+        }
+        if (!response.IsSuccessStatusCode || auth.Code != 0)
+        {
+            throw new miHoYoApiException(auth.Code == 0 ? (int)response.StatusCode : auth.Code, auth.Message ?? "Cannot refresh Skland auth token.");
+        }
+        if (string.IsNullOrWhiteSpace(auth.Data?.Token))
+        {
+            throw new miHoYoApiException(-1, "Skland auth token is empty.");
+        }
+        return (auth.Data.Token, auth.Timestamp);
+    }
+
+
+    private static string CreateSklandSign(string token, string path, string query, string timestamp)
+    {
+        string headers = $"{{\"platform\":\"3\",\"timestamp\":\"{timestamp}\",\"dId\":\"\",\"vName\":\"1.0.0\"}}";
+        string payload = path + query + timestamp + headers;
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(token));
+        string hmacText = Convert.ToHexStringLower(hmac.ComputeHash(Encoding.UTF8.GetBytes(payload)));
+        return Convert.ToHexStringLower(MD5.HashData(Encoding.UTF8.GetBytes(hmacText)));
     }
 
 

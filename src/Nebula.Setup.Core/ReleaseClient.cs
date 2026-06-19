@@ -99,7 +99,7 @@ public class ReleaseClient
 
     public async Task<GithubRelease?> GetGithubLatestReleaseAsync(CancellationToken cancellationToken = default)
     {
-        const string url = "https://api.github.com/repos/Scighost/Nebula/releases?page=1&per_page=1";
+        const string url = "https://api.github.com/repos/Anoth3rr/Nebula/releases?page=1&per_page=1";
         var list = await _httpClient.GetFromJsonAsync(url, ReleaseJsonContext.Default.ListGithubRelease, cancellationToken);
         return list?.FirstOrDefault();
     }
@@ -108,7 +108,7 @@ public class ReleaseClient
 
     public async Task<List<GithubRelease>> GetGithubReleaseAsync(int page, int perPage, CancellationToken cancellationToken = default)
     {
-        string url = $"https://api.github.com/repos/Scighost/Nebula/releases?page={page}&per_page={perPage}";
+        string url = $"https://api.github.com/repos/Anoth3rr/Nebula/releases?page={page}&per_page={perPage}";
         var list = await _httpClient.GetFromJsonAsync(url, ReleaseJsonContext.Default.ListGithubRelease, cancellationToken);
         return list ?? new List<GithubRelease>();
     }
@@ -117,7 +117,7 @@ public class ReleaseClient
 
     public async Task<GithubRelease?> GetGithubReleaseAsync(string tag, CancellationToken cancellationToken = default)
     {
-        string url = $"https://api.github.com/repos/Scighost/Nebula/releases/tags/{tag}";
+        string url = $"https://api.github.com/repos/Anoth3rr/Nebula/releases/tags/{tag}";
         return await _httpClient.GetFromJsonAsync(url, ReleaseJsonContext.Default.GithubRelease, cancellationToken);
     }
 
@@ -129,7 +129,7 @@ public class ReleaseClient
         {
             Text = markdown,
             Mode = "gfm",
-            Context = "Scighost/Nebula",
+            Context = "Anoth3rr/Nebula",
         };
         var content = new StringContent(JsonSerializer.Serialize(request, ReleaseJsonContext.Default.GithubMarkdownRequest), Encoding.UTF8, "application/json");
         var response = await _httpClient.PostAsync(url, content, cancellationToken);

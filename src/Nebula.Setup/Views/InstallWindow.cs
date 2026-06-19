@@ -482,7 +482,7 @@ public class InstallWindow : WindowBase
     {
         Process.Start(new ProcessStartInfo
         {
-            FileName = "https://github.com/Scighost/Nebula/blob/main/docs/Privacy.md",
+            FileName = "https://github.com/Anoth3rr/Nebula/blob/main/docs/Privacy.md",
             UseShellExecute = true,
         });
     }

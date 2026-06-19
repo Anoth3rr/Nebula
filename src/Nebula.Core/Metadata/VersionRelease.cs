@@ -42,7 +42,7 @@ public class ReleaseVersion : IJsonOnDeserialized
 
 
     [JsonIgnore]
-    public string ReleasePage => $"https://github.com/Scighost/Nebula/releases/tag/{Version}";
+    public string ReleasePage => $"https://github.com/Anoth3rr/Nebula/releases/tag/{Version}";
 
 
     public void OnDeserialized()

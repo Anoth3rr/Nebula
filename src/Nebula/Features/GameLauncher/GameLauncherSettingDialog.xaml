@@ -382,7 +382,7 @@
                                     <Flyout>
                                         <TextBlock MaxWidth="380" TextWrapping="Wrap">
                                             <Run Text="{x:Bind lang:Lang.GameLauncherSettingDialog_AvoidShowingAlertsAboutDetectingIllegalToolInTheGame}" />
-                                            <Hyperlink NavigateUri="https://github.com/Scighost/Nebula/issues/1634" UnderlineStyle="None">
+                                            <Hyperlink NavigateUri="https://github.com/Anoth3rr/Nebula/issues/1634" UnderlineStyle="None">
                                                 <Run Text="#1634" />
                                             </Hyperlink>
                                         </TextBlock>

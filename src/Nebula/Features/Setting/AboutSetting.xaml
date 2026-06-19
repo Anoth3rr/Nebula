@@ -90,28 +90,28 @@
                        FontSize="20"
                        Text="{x:Bind lang:Lang.AboutSettingPage_Links}" />
             <TextBlock Margin="0,8,0,0" HorizontalAlignment="Left">
-                <Hyperlink NavigateUri="https://github.com/Scighost/Nebula" UnderlineStyle="None">
+                <Hyperlink NavigateUri="https://github.com/Anoth3rr/Nebula" UnderlineStyle="None">
                     <Run FontWeight="Bold"
                          Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
                          Text="{x:Bind lang:Lang.SettingPage_ProjectHomepage}" />
                 </Hyperlink>
             </TextBlock>
             <TextBlock Margin="0,8,0,0" HorizontalAlignment="Left">
-                <Hyperlink NavigateUri="https://github.com/Scighost/Nebula/issues" UnderlineStyle="None">
+                <Hyperlink NavigateUri="https://github.com/Anoth3rr/Nebula/issues" UnderlineStyle="None">
                     <Run FontWeight="Bold"
                          Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
                          Text="{x:Bind lang:Lang.SettingPage_ReportIssue}" />
                 </Hyperlink>
             </TextBlock>
             <TextBlock Margin="0,8,0,0" HorizontalAlignment="Left">
-                <Hyperlink NavigateUri="https://github.com/Scighost/Nebula/releases" UnderlineStyle="None">
+                <Hyperlink NavigateUri="https://github.com/Anoth3rr/Nebula/releases" UnderlineStyle="None">
                     <Run FontWeight="Bold"
                          Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
                          Text="{x:Bind lang:Lang.SettingPage_ReleaseHistroy}" />
                 </Hyperlink>
             </TextBlock>
             <TextBlock Margin="0,8,0,0" HorizontalAlignment="Left">
-                <Hyperlink NavigateUri="https://github.com/Scighost/Nebula/blob/main/docs/Privacy.md" UnderlineStyle="None">
+                <Hyperlink NavigateUri="https://github.com/Anoth3rr/Nebula/blob/main/docs/Privacy.md" UnderlineStyle="None">
                     <Run FontWeight="Bold"
                          Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
                          Text="{x:Bind lang:Lang.SettingPage_PrivacyPolicy}" />

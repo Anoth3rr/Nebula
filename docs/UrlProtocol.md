@@ -7,7 +7,7 @@ Other software even website could use url protocol `nebula` to call some feature
 
 ## Available features
 
-The parameter `game_biz`  in the following is game region identifier and can be viewed in [GameBiz.cs](https://github.com/Scighost/Nebula/blob/main/src/Nebula.Core/GameBiz.cs).
+The parameter `game_biz`  in the following is game region identifier and can be viewed in [GameBiz.cs](https://github.com/Anoth3rr/Nebula/blob/main/src/Nebula.Core/GameBiz.cs).
 
 | game_biz (string) | Description                             |
 | ----------------- | --------------------------------------- |

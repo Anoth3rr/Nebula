@@ -1,4 +1,5 @@
 using Nebula.Core.Gacha.Genshin;
+using Nebula.Core.Gacha.Endfield;
 using Nebula.Core.Gacha.StarRail;
 using Nebula.Core.Gacha.WutheringWaves;
 using Nebula.Core.Gacha.ZZZ;
@@ -17,6 +18,8 @@ namespace Nebula.Core.Gacha;
 [JsonSerializable(typeof(miHoYoApiWrapper<StarRailGachaInfoWrapper>))]
 [JsonSerializable(typeof(miHoYoApiWrapper<ZZZGachaWiki>))]
 [JsonSerializable(typeof(WutheringWavesCataloguePage))]
+[JsonSerializable(typeof(SklandAuthResponse))]
+[JsonSerializable(typeof(SklandWikiCatalogResponse))]
 [JsonSerializable(typeof(List<GenshinBeyondGachaInfo>))]
 internal partial class GachaLogJsonContext : JsonSerializerContext
 {

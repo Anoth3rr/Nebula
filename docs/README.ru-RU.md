@@ -23,7 +23,7 @@ Nebula — это сторонний лаунчер с открытым исхо
 - Установлено [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2) 
 - Для улучшения работы, пожалуйста, включите ** Эффекты прозрачности ** и ** Эффекты анимаций ** в системных настройках
 
-Загрузите пакет для вашей архитектуры процессора с сайта [GitHub Release](https://github.com/Scighost/Nebula/releases). Извлеките его, затем запустите `Nebula.exe` и следуйте инструкциям.
+Загрузите пакет для вашей архитектуры процессора с сайта [GitHub Release](https://github.com/Anoth3rr/Nebula/releases). Извлеките его, затем запустите `Nebula.exe` и следуйте инструкциям.
 
 
 ## Локализация
@@ -56,8 +56,8 @@ Nebula использует [Crowdin](https://crowdin.com/project/nebula) для
 ## Спасибо
 
 <picture>
-    <source srcset="https://github.com/Scighost/Nebula/assets/61003590/9d369ec3-ab7c-408f-88c2-11bfe4453208" type="image/avif" />
-    <img src="https://github.com/Scighost/Nebula/assets/61003590/44552992-e2c5-451f-9c2a-73176e8e4e93" width="240px" />
+    <source srcset="https://github.com/Anoth3rr/Nebula/assets/61003590/9d369ec3-ab7c-408f-88c2-11bfe4453208" type="image/avif" />
+    <img src="https://github.com/Anoth3rr/Nebula/assets/61003590/44552992-e2c5-451f-9c2a-73176e8e4e93" width="240px" />
 </picture>
 
 Прежде всего, я хотел бы выразить свою искреннюю благодарность всем участникам и переводчикам этого проекта. Nebula может стать лучше только благодаря вам.

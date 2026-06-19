@@ -13,9 +13,9 @@ public class MetadataClient
 
     private const string API_PREFIX_CLOUDFLARE = "https://nebula-static.scighost.com/metadata";
 
-    private const string API_PREFIX_GITHUB = "https://raw.githubusercontent.com/Scighost/Nebula/metadata";
+    private const string API_PREFIX_GITHUB = "https://raw.githubusercontent.com/Anoth3rr/Nebula/metadata";
 
-    private const string API_PREFIX_JSDELIVR = "https://cdn.jsdelivr.net/gh/Scighost/Nebula@metadata";
+    private const string API_PREFIX_JSDELIVR = "https://cdn.jsdelivr.net/gh/Anoth3rr/Nebula@metadata";
 
 
     private string API_PREFIX = API_PREFIX_CLOUDFLARE;
@@ -119,7 +119,7 @@ public class MetadataClient
 
     public async Task<GithubRelease?> GetGithubLatestReleaseAsync(CancellationToken cancellationToken = default)
     {
-        const string url = "https://api.github.com/repos/Scighost/Nebula/releases?page=1&per_page=1";
+        const string url = "https://api.github.com/repos/Anoth3rr/Nebula/releases?page=1&per_page=1";
         var list = await CommonGetAsync<List<GithubRelease>>(url, cancellationToken);
         return list?.FirstOrDefault();
     }
@@ -128,7 +128,7 @@ public class MetadataClient
 
     public async Task<List<GithubRelease>> GetGithubReleaseAsync(int page, int perPage, CancellationToken cancellationToken = default)
     {
-        string url = $"https://api.github.com/repos/Scighost/Nebula/releases?page={page}&per_page={perPage}";
+        string url = $"https://api.github.com/repos/Anoth3rr/Nebula/releases?page={page}&per_page={perPage}";
         var list = await CommonGetAsync<List<GithubRelease>>(url, cancellationToken);
         return list ?? new List<GithubRelease>();
     }
@@ -137,7 +137,7 @@ public class MetadataClient
 
     public async Task<GithubRelease?> GetGithubReleaseAsync(string tag, CancellationToken cancellationToken = default)
     {
-        string url = $"https://api.github.com/repos/Scighost/Nebula/releases/tags/{tag}";
+        string url = $"https://api.github.com/repos/Anoth3rr/Nebula/releases/tags/{tag}";
         return await CommonGetAsync<GithubRelease>(url, cancellationToken);
     }
 
@@ -149,7 +149,7 @@ public class MetadataClient
         {
             Text = markdown,
             Mode = "gfm",
-            Context = "Scighost/Nebula",
+            Context = "Anoth3rr/Nebula",
         };
         var content = new StringContent(JsonSerializer.Serialize(request, typeof(GithubMarkdownRequest), MetadataJsonContext.Default), new MediaTypeHeaderValue("application/json"));
         var response = await _httpClient.PostAsync(url, content, cancellationToken);

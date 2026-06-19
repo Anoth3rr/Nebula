@@ -23,7 +23,7 @@
 - [WebView2 ランタイム](https://developer.microsoft.com/microsoft-edge/webview2)がインストール済みである事
 - Windows 10 を使用しているユーザーは、[Segoe Fluent Icons](https://aka.ms/SegoeFluentIcons) フォントのインストールを推奨します
 
-[GitHub のリリースページ](https://github.com/Scighost/Nebula/releases)から使用している CPU のアーキテクチャに対応したパッケージをダウンロードして展開を行い、`Nebula.exe` のプロンプトに従って操作をしてください。
+[GitHub のリリースページ](https://github.com/Anoth3rr/Nebula/releases)から使用している CPU のアーキテクチャに対応したパッケージをダウンロードして展開を行い、`Nebula.exe` のプロンプトに従って操作をしてください。
 
 一部のデバイスで `Nebula.exe` を実行時にクラッシュをする問題が発生する事があります。この問題が発生した場合は、`Nebula.exe` が存在するフォルダーに `config.ini` のファイルを作成して、以下を貼り付けてください。`config.ini` の詳細は、[docs/Configuration.ja-JP.md](./Configuration.ja-JP.md) を参照してください。
 

@@ -74,8 +74,8 @@
                     Spacing="4">
             <TextBlock Text="{x:Bind lang:Lang.ZZZGachaInfoWindow_ZZZGachaInfoWindowGuide}" TextWrapping="Wrap" />
             <TextBlock TextWrapping="Wrap">
-                <Hyperlink NavigateUri="https://github.com/Scighost/Nebula/tree/metadata/v1/zzz" UnderlineStyle="None">
-                    <Run Text="https://github.com/Scighost/Nebula/tree/metadata/v1/zzz" />
+                <Hyperlink NavigateUri="https://github.com/Anoth3rr/Nebula/tree/metadata/v1/zzz" UnderlineStyle="None">
+                    <Run Text="https://github.com/Anoth3rr/Nebula/tree/metadata/v1/zzz" />
                 </Hyperlink>
             </TextBlock>
 

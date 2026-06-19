@@ -186,7 +186,7 @@
                 <Run Text="" />
                 <Run Text="" />
                 <Hyperlink Click="Hyperlink_Click"
-                           NavigateUri="https://github.com/Scighost/Nebula/issues/1388"
+                           NavigateUri="https://github.com/Anoth3rr/Nebula/issues/1388"
                            UnderlineStyle="None">
                     <Run Text="{x:Bind lang:Lang.WelcomeView_LearnMore}" />
                 </Hyperlink>

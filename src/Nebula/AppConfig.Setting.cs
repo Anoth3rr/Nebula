@@ -385,7 +385,7 @@ public static partial class AppConfig
     }
 
     /// <summary>
-    /// 使用 CMD 启动游戏 <see href="https://github.com/Scighost/Nebula/issues/1634"/>
+    /// 使用 CMD 启动游戏 <see href="https://github.com/Anoth3rr/Nebula/issues/1634"/>
     /// </summary>
     public static bool StartGameWithCMD
     {
