@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Nebula": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    }
+  }
+}

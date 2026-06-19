@@ -54,8 +54,8 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v5
       with:
-        name: Starward_Portable_${{ needs.version.outputs.version }}_${{ matrix.platform }}.7z
-        path: build/release/package/Starward_Portable_${{ needs.version.outputs.version }}_${{ matrix.platform }}.7z
+        name: Nebula_Portable_${{ needs.version.outputs.version }}_${{ matrix.platform }}.7z
+        path: build/release/package/Nebula_Portable_${{ needs.version.outputs.version }}_${{ matrix.platform }}.7z
 
     - name: Upload Metadata
       uses: actions/upload-artifact@v5
@@ -78,7 +78,7 @@ jobs:
         ossutil config -e ${{ secrets.OSS_ENDPOINT }} -i ${{ secrets.ACCESS_KEY_ID }} -k ${{ secrets.ACCESS_KEY_SECRET }}
 
     - name: Upload to OSS
-      run: ossutil cp -rf ./build/release/ oss://starward/release/ --meta Content-Type:multipart/mixed
+      run: ossutil cp -rf ./build/release/ oss://nebula/release/ --meta Content-Type:multipart/mixed
 
 
   metadata:

@@ -38,19 +38,19 @@ jobs:
     - name: Compile App (Single Arch)
       run: dotnet run publish.cs -- compile --version $env:Version --arch $env:Arch
 
-    - name: Upload unsigned Starward binaries
+    - name: Upload unsigned Nebula binaries
       if: ${{ vars.ENABLE_SIGNPATH == 'true' }}
       id: upload-unsigned-bin
       uses: actions/upload-artifact@v7
       with:
-        name: unsigned_starward_bin_${{ env.Version }}_${{ env.Arch }}
+        name: unsigned_nebula_bin_${{ env.Version }}_${{ env.Arch }}
         path: |
-          publish/${{ env.Arch }}/Starward/app-${{ env.Version }}/Starward*.exe
-          publish/${{ env.Arch }}/Starward/app-${{ env.Version }}/Starward*.dll
+          publish/${{ env.Arch }}/Nebula/app-${{ env.Version }}/Nebula*.exe
+          publish/${{ env.Arch }}/Nebula/app-${{ env.Version }}/Nebula*.dll
         if-no-files-found: error
         retention-days: 7
 
-    - name: Sign Starward binaries with SignPath
+    - name: Sign Nebula binaries with SignPath
       if: ${{ vars.ENABLE_SIGNPATH == 'true' }}
       uses: signpath/github-action-submit-signing-request@v2
       with:
@@ -61,7 +61,7 @@ jobs:
         github-artifact-id: '${{ steps.upload-unsigned-bin.outputs.artifact-id }}'
         wait-for-completion: true
         wait-for-completion-timeout-in-seconds: 3600
-        output-artifact-directory: publish/${{ env.Arch }}/Starward/app-${{ env.Version }}
+        output-artifact-directory: publish/${{ env.Arch }}/Nebula/app-${{ env.Version }}
 
     - name: Pack (Single Arch, Skip Compile)
       run: dotnet run publish.cs -- pack --version $env:Version --arch $env:Arch
@@ -72,7 +72,7 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: unsigned_setup_${{ env.Version }}_${{ env.Arch }}
-        path: publish/release/package/Starward_Setup_${{ env.Version }}_${{ env.Arch }}.exe
+        path: publish/release/package/Nebula_Setup_${{ env.Version }}_${{ env.Arch }}.exe
         if-no-files-found: error
         retention-days: 7
 
@@ -93,7 +93,7 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: compiled_${{ env.Version }}_${{ env.Arch }}
-        path: publish/${{ env.Arch }}/Starward/
+        path: publish/${{ env.Arch }}/Nebula/
         retention-days: 7
 
     - name: Upload Artifact (Package, ${{ env.Arch }})
@@ -101,8 +101,8 @@ jobs:
       with:
         name: package_${{ env.Version }}_${{ env.Arch }}
         path: |
-          publish/release/package/Starward_Setup_${{ env.Version }}_${{ env.Arch }}.exe
-          publish/release/package/Starward_Portable_${{ env.Version }}_${{ env.Arch }}.7z
+          publish/release/package/Nebula_Setup_${{ env.Version }}_${{ env.Arch }}.exe
+          publish/release/package/Nebula_Portable_${{ env.Version }}_${{ env.Arch }}.7z
         retention-days: 7
 
 
@@ -133,7 +133,7 @@ jobs:
       uses: actions/download-artifact@v8
       with:
         name: compiled_${{ env.Version }}_${{ env.Arch }}
-        path: publish/${{ env.Arch }}/Starward/
+        path: publish/${{ env.Arch }}/Nebula/
 
     - name: Download Artifact (Package, ${{ env.Arch }})
       uses: actions/download-artifact@v8
@@ -254,8 +254,8 @@ jobs:
 
     - name: Upload to OSS
       run: |
-        ossutil cp ./publish/release/ oss://starward-static/release/ -r -f -j 20
-        ossutil cp ./publish/release/version/ oss://starward-static/release/version/ -r -f --content-type "application/json" --cache-control "public, s-maxage=2592000"
+        ossutil cp ./publish/release/ oss://nebula-static/release/ -r -f -j 20
+        ossutil cp ./publish/release/version/ oss://nebula-static/release/version/ -r -f --content-type "application/json" --cache-control "public, s-maxage=2592000"
       env:
         OSS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY_ID }}
         OSS_ACCESS_KEY_SECRET: ${{ secrets.ACCESS_KEY_SECRET }}

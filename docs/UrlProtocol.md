@@ -1,13 +1,13 @@
 # URL Protocol
 
-Other software even website could use url protocol `starward` to call some features of Starward. The url protocol is registered only when the user enables this feature in setting page.
+Other software even website could use url protocol `nebula` to call some features of Nebula. The url protocol is registered only when the user enables this feature in setting page.
 
 ![URL Protocol](https://user-images.githubusercontent.com/61003590/278273851-7c614cde-d8c4-403b-876e-cecc3570f684.png)
 
 
 ## Available features
 
-The parameter `game_biz`  in the following is game region identifier and can be viewed in [GameBiz.cs](https://github.com/Scighost/Starward/blob/main/src/Starward.Core/GameBiz.cs).
+The parameter `game_biz`  in the following is game region identifier and can be viewed in [GameBiz.cs](https://github.com/Scighost/Nebula/blob/main/src/Nebula.Core/GameBiz.cs).
 
 | game_biz (string) | Description                             |
 | ----------------- | --------------------------------------- |
@@ -19,12 +19,18 @@ The parameter `game_biz`  in the following is game region identifier and can be 
 | hkrpg_bilibili    | Star Rail (Bilibili)                    |
 | bh3_cn            | Honkai 3rd (Mainland China)             |
 | bh3_global        | Honkai 3rd (Global)                     |
+| arknights_cn      | Arknights (Mainland China)              |
+| arknights_global  | Arknights (Global)                      |
+| endfield_cn       | Arknights: Endfield (Mainland China)    |
+| endfield_global   | Arknights: Endfield (Global)            |
+| wutheringwaves_cn | Wuthering Waves (Mainland China)        |
+| wutheringwaves_global | Wuthering Waves (Global)            |
 
 
 ### Start game
 
 ```
-starward://startgame/{game_biz}?install_path={install_path}
+nebula://startgame/{game_biz}?install_path={install_path}
 ```
 
 **Acceptable query arguments**
@@ -37,7 +43,7 @@ starward://startgame/{game_biz}?install_path={install_path}
 ### Record playtime
 
 ```
-starward://playtime/{game_biz}?pid={pid}
+nebula://playtime/{game_biz}?pid={pid}
 ```
 
 **Acceptable query arguments**

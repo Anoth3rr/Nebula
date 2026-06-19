@@ -60,8 +60,8 @@ jobs:
     - name: Upload Package
       uses: actions/upload-artifact@v5
       with:
-        name: Starward_Portable_${{ env.Version }}_${{ env.Platform }}.7z
-        path: build/release/package/Starward_Portable_${{ env.Version }}_${{ env.Platform }}.7z
+        name: Nebula_Portable_${{ env.Version }}_${{ env.Platform }}.7z
+        path: build/release/package/Nebula_Portable_${{ env.Version }}_${{ env.Platform }}.7z
 
     - name: Upload Release Info
       uses: actions/upload-artifact@v5
@@ -83,7 +83,7 @@ jobs:
         Move-Item -Path ${{runner.temp}}/ossutil-2.3.0-windows-amd64/ossutil.exe -Destination C:/Windows/System32/ossutil.exe -Force
 
     - name: Upload to OSS
-      run: ossutil cp ./build/release/ oss://starward-static/release/ -r -f -j 20
+      run: ossutil cp ./build/release/ oss://nebula-static/release/ -r -f -j 20
       env:
         OSS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY_ID }}
         OSS_ACCESS_KEY_SECRET: ${{ secrets.ACCESS_KEY_SECRET }}
@@ -127,7 +127,7 @@ jobs:
     - name: Combine Release Info
       shell: pwsh
       run: |
-        dotnet run --project 'src/Starward.Setup.Build' -c Release -- release combine "static/release/history/release_info_${{ env.Version }}.json" -i "build/release_info_${{ env.Version }}_x64.json" "build/release_info_${{ env.Version }}_arm64.json"
+        dotnet run --project 'src/Nebula.Setup.Build' -c Release -- release combine "static/release/history/release_info_${{ env.Version }}.json" -i "build/release_info_${{ env.Version }}_x64.json" "build/release_info_${{ env.Version }}_arm64.json"
         Copy-Item "static/release/history/release_info_${{ env.Version }}.json" "static/release/release_info_preview.json" -Force
 
     - name: Create Static Pull Request

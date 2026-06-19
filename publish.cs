@@ -5,13 +5,13 @@
 #:package SharpSevenZip@2.0.47
 #:package System.IO.Hashing@10.0.8
 #:package ZstdSharp.Port@0.8.8
-#:project src/Starward.Setup.Core/Starward.Setup.Core.csproj
+#:project src/Nebula.Setup.Core/Nebula.Setup.Core.csproj
 
 using Microsoft.Extensions.Configuration;
 using Polly;
 using Polly.Retry;
 using SharpSevenZip;
-using Starward.Setup.Core;
+using Nebula.Setup.Core;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO.Compression;
@@ -24,7 +24,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 
-const string UrlPrefix = "https://starward-static.scighost.com/release";
+const string UrlPrefix = "https://nebula-static.scighost.com/release";
 
 
 var knownCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -62,32 +62,32 @@ if (string.Equals(command, "res", StringComparison.OrdinalIgnoreCase))
     bool noBuild = config.GetValue<bool>("no-build");
     string tag = config.GetValue<string>("tag") ?? DateTimeOffset.UtcNow.ToString("yyyy.MMdd.HHmm");
 
-    if (File.Exists("src/Starward.Setup/Assets/Starward.7z"))
+    if (File.Exists("src/Nebula.Setup/Assets/Nebula.7z"))
     {
-        File.Delete("src/Starward.Setup/Assets/Starward.7z");
+        File.Delete("src/Nebula.Setup/Assets/Nebula.7z");
     }
 
     if (!noBuild)
     {
         Environment.SetEnvironmentVariable("PATH", Environment.GetEnvironmentVariable("PATH") + @";C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\");
 
-        await Process.Start("dotnet", $"publish src/Starward.Setup -o publish/pub_res/ -r win-x64 -p:Version={tag}").EnsureExitSuccessAsync();
-        File.Move("publish/pub_res/Starward.Setup.exe", $"publish/pub_res/Starward.Setup_x64_{tag}.exe", true);
+        await Process.Start("dotnet", $"publish src/Nebula.Setup -o publish/pub_res/ -r win-x64 -p:Version={tag}").EnsureExitSuccessAsync();
+        File.Move("publish/pub_res/Nebula.Setup.exe", $"publish/pub_res/Nebula.Setup_x64_{tag}.exe", true);
 
-        await Process.Start("dotnet", $"publish src/Starward.Setup -o publish/pub_res/ -r win-arm64 -p:Version={tag}").EnsureExitSuccessAsync();
-        File.Move("publish/pub_res/Starward.Setup.exe", $"publish/pub_res/Starward.Setup_arm64_{tag}.exe", true);
-
-        await Process.Start("msbuild", $"""
-        src/Starward.Launcher -property:Configuration=Release;Platform=x64;Version={tag};OutDir={Path.GetFullPath("publish/pub_res/")}
-        """).EnsureExitSuccessAsync();
-        File.Move("publish/pub_res/Starward.exe", $"publish/pub_res/Starward_x64_{tag}.exe", true);
+        await Process.Start("dotnet", $"publish src/Nebula.Setup -o publish/pub_res/ -r win-arm64 -p:Version={tag}").EnsureExitSuccessAsync();
+        File.Move("publish/pub_res/Nebula.Setup.exe", $"publish/pub_res/Nebula.Setup_arm64_{tag}.exe", true);
 
         await Process.Start("msbuild", $"""
-        src/Starward.Launcher -property:Configuration=Release;Platform=arm64;Version={tag};OutDir={Path.GetFullPath("publish/pub_res/")}
+        src/Nebula.Launcher -property:Configuration=Release;Platform=x64;Version={tag};OutDir={Path.GetFullPath("publish/pub_res/")}
         """).EnsureExitSuccessAsync();
-        File.Move("publish/pub_res/Starward.exe", $"publish/pub_res/Starward_arm64_{tag}.exe", true);
+        File.Move("publish/pub_res/Nebula.exe", $"publish/pub_res/Nebula_x64_{tag}.exe", true);
 
-        await Process.Start("upx", $"publish/pub_res/Starward.Setup_x64_{tag}.exe").EnsureExitSuccessAsync();
+        await Process.Start("msbuild", $"""
+        src/Nebula.Launcher -property:Configuration=Release;Platform=arm64;Version={tag};OutDir={Path.GetFullPath("publish/pub_res/")}
+        """).EnsureExitSuccessAsync();
+        File.Move("publish/pub_res/Nebula.exe", $"publish/pub_res/Nebula_arm64_{tag}.exe", true);
+
+        await Process.Start("upx", $"publish/pub_res/Nebula.Setup_x64_{tag}.exe").EnsureExitSuccessAsync();
     }
 
     var buildRes = new BuildResource
@@ -95,31 +95,31 @@ if (string.Equals(command, "res", StringComparison.OrdinalIgnoreCase))
         Tag = tag,
         SetupX64 = new ReleaseSetup
         {
-            FileName = "Starward.Setup.exe",
-            Size = new FileInfo($"publish/pub_res/Starward.Setup_x64_{tag}.exe").Length,
-            Hash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes($"publish/pub_res/Starward.Setup_x64_{tag}.exe"))),
-            Url = $"{UrlPrefix}/pub_res/Starward.Setup_x64_{tag}.exe",
+            FileName = "Nebula.Setup.exe",
+            Size = new FileInfo($"publish/pub_res/Nebula.Setup_x64_{tag}.exe").Length,
+            Hash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes($"publish/pub_res/Nebula.Setup_x64_{tag}.exe"))),
+            Url = $"{UrlPrefix}/pub_res/Nebula.Setup_x64_{tag}.exe",
         },
         SetupArm64 = new ReleaseSetup
         {
-            FileName = "Starward.Setup.exe",
-            Size = new FileInfo($"publish/pub_res/Starward.Setup_arm64_{tag}.exe").Length,
-            Hash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes($"publish/pub_res/Starward.Setup_arm64_{tag}.exe"))),
-            Url = $"{UrlPrefix}/pub_res/Starward.Setup_arm64_{tag}.exe",
+            FileName = "Nebula.Setup.exe",
+            Size = new FileInfo($"publish/pub_res/Nebula.Setup_arm64_{tag}.exe").Length,
+            Hash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes($"publish/pub_res/Nebula.Setup_arm64_{tag}.exe"))),
+            Url = $"{UrlPrefix}/pub_res/Nebula.Setup_arm64_{tag}.exe",
         },
         LauncherX64 = new ReleaseSetup
         {
-            FileName = "Starward.exe",
-            Size = new FileInfo($"publish/pub_res/Starward_x64_{tag}.exe").Length,
-            Hash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes($"publish/pub_res/Starward_x64_{tag}.exe"))),
-            Url = $"{UrlPrefix}/pub_res/Starward_x64_{tag}.exe",
+            FileName = "Nebula.exe",
+            Size = new FileInfo($"publish/pub_res/Nebula_x64_{tag}.exe").Length,
+            Hash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes($"publish/pub_res/Nebula_x64_{tag}.exe"))),
+            Url = $"{UrlPrefix}/pub_res/Nebula_x64_{tag}.exe",
         },
         LauncherArm64 = new ReleaseSetup
         {
-            FileName = "Starward.exe",
-            Size = new FileInfo($"publish/pub_res/Starward_arm64_{tag}.exe").Length,
-            Hash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes($"publish/pub_res/Starward_arm64_{tag}.exe"))),
-            Url = $"{UrlPrefix}/pub_res/Starward_arm64_{tag}.exe",
+            FileName = "Nebula.exe",
+            Size = new FileInfo($"publish/pub_res/Nebula_arm64_{tag}.exe").Length,
+            Hash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes($"publish/pub_res/Nebula_arm64_{tag}.exe"))),
+            Url = $"{UrlPrefix}/pub_res/Nebula_arm64_{tag}.exe",
         }
     };
 
@@ -221,8 +221,8 @@ if (doCompile)
         }
 
         Console.WriteLine($"Building {archName} release...");
-        await Process.Start("dotnet", $"publish src/Starward -c Release -r win-{archName} -o {archPath}/Starward/app-{version} -p:Platform={archName} -p:Version={version}").EnsureExitSuccessAsync();
-        await File.WriteAllTextAsync($"{archPath}/Starward/version.ini", $"version={version}");
+        await Process.Start("dotnet", $"publish src/Nebula -c Release -r win-{archName} -o {archPath}/Nebula/app-{version} -p:Platform={archName} -p:Version={version}").EnsureExitSuccessAsync();
+        await File.WriteAllTextAsync($"{archPath}/Nebula/version.ini", $"version={version}");
     }
 }
 
@@ -281,37 +281,37 @@ async Task CreatePackageAsync(string version, Architecture arch, InstallType typ
 {
     Console.WriteLine($"Creating package for ({version}, {arch}, {type})...");
 
-    string rootPath = type is InstallType.Setup ? $"publish/{arch.ToLower()}/Starward/app-{version}/" : $"publish/{arch.ToLower()}/Starward/";
+    string rootPath = type is InstallType.Setup ? $"publish/{arch.ToLower()}/Nebula/app-{version}/" : $"publish/{arch.ToLower()}/Nebula/";
 
     // compress
     if (doPackage)
     {
         Directory.CreateDirectory("publish/release/package/");
-        Directory.CreateDirectory("src/Starward.Setup/Assets/");
+        Directory.CreateDirectory("src/Nebula.Setup/Assets/");
         var compressor = new SharpSevenZipCompressor { CompressionLevel = SharpSevenZip.CompressionLevel.Ultra };
         if (type is InstallType.Setup)
         {
             Console.WriteLine("Compressing setup package...");
-            File.Copy($"publish/pub_res/Starward.Setup_{arch.ToLower()}.exe", Path.Join(rootPath, "Starward.Setup.exe"), true);
-            compressor.CompressDirectory(rootPath, "src/Starward.Setup/Assets/Starward.7z");
+            File.Copy($"publish/pub_res/Nebula.Setup_{arch.ToLower()}.exe", Path.Join(rootPath, "Nebula.Setup.exe"), true);
+            compressor.CompressDirectory(rootPath, "src/Nebula.Setup/Assets/Nebula.7z");
             Console.WriteLine("Creating setup executable...");
             var p = Process.Start("dotnet", $"""
-                publish src/Starward.Setup -o publish/{arch.ToLower()}-setup/ -r win-{arch.ToLower()} -p:Version={version}
+                publish src/Nebula.Setup -o publish/{arch.ToLower()}-setup/ -r win-{arch.ToLower()} -p:Version={version}
                 """);
             await p.WaitForExitAsync();
             if (p.ExitCode != 0)
             {
                 throw new Exception($"Publish setup exited with code {p.ExitCode}");
             }
-            File.Move($"publish/{arch.ToLower()}-setup/Starward.Setup.exe", $"publish/release/package/Starward_Setup_{version}_{arch.ToLower()}.exe", true);
-            File.Delete("src/Starward.Setup/Assets/Starward.7z");
-            File.Delete(Path.Join(rootPath, "Starward.Setup.exe"));
+            File.Move($"publish/{arch.ToLower()}-setup/Nebula.Setup.exe", $"publish/release/package/Nebula_Setup_{version}_{arch.ToLower()}.exe", true);
+            File.Delete("src/Nebula.Setup/Assets/Nebula.7z");
+            File.Delete(Path.Join(rootPath, "Nebula.Setup.exe"));
         }
         else
         {
             Console.WriteLine("Compressing portable package...");
-            File.Copy($"publish/pub_res/Starward_{arch.ToLower()}.exe", Path.Join(rootPath, "Starward.exe"), true);
-            compressor.CompressDirectory(Path.GetDirectoryName(rootPath.TrimEnd('/', '\\'))!, $"publish/release/package/Starward_Portable_{version}_{arch.ToLower()}.7z");
+            File.Copy($"publish/pub_res/Nebula_{arch.ToLower()}.exe", Path.Join(rootPath, "Nebula.exe"), true);
+            compressor.CompressDirectory(Path.GetDirectoryName(rootPath.TrimEnd('/', '\\'))!, $"publish/release/package/Nebula_Portable_{version}_{arch.ToLower()}.7z");
         }
         Console.WriteLine("Compression completed.");
         Console.WriteLine("--------------------");
@@ -362,7 +362,7 @@ async Task CreatePackageAsync(string version, Architecture arch, InstallType typ
         }
     }
 
-    string packageFileName = type is InstallType.Setup ? $"Starward_Setup_{version}_{arch.ToLower()}.exe" : $"Starward_Portable_{version}_{arch.ToLower()}.7z";
+    string packageFileName = type is InstallType.Setup ? $"Nebula_Setup_{version}_{arch.ToLower()}.exe" : $"Nebula_Portable_{version}_{arch.ToLower()}.7z";
 
     release_info.Releases.Add($"{arch}-{type}".ToLower(), new ReleaseInfoDetail
     {
@@ -903,7 +903,7 @@ public class BuildClient
         {
             DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher,
         };
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", "Starward Build Tool");
+        _httpClient.DefaultRequestHeaders.Add("User-Agent", "Nebula Build Tool");
         _releaseClient = new ReleaseClient(_httpClient);
 
         _polly = new ResiliencePipelineBuilder().AddRetry(new RetryStrategyOptions
@@ -917,13 +917,13 @@ public class BuildClient
     public async Task<BuildResource> PrepareBuildResourceAsync()
     {
         Console.WriteLine("Preparing build resources...");
-        BuildResource? res = await _httpClient.GetFromJsonAsync("https://starward-release.scighost.com/release/pub_res/pub_res.json", JsonContext.Default.BuildResource)
+        BuildResource? res = await _httpClient.GetFromJsonAsync("https://nebula-release.scighost.com/release/pub_res/pub_res.json", JsonContext.Default.BuildResource)
                            ?? throw new Exception("Failed to get build resource from server.");
         Directory.CreateDirectory("publish/pub_res/");
-        await DownloadFileAndCheckHashAsync(res.SetupX64.Url, "publish/pub_res/Starward.Setup_x64.exe", res.SetupX64.Hash);
-        await DownloadFileAndCheckHashAsync(res.SetupArm64.Url, "publish/pub_res/Starward.Setup_arm64.exe", res.SetupArm64.Hash);
-        await DownloadFileAndCheckHashAsync(res.LauncherX64.Url, "publish/pub_res/Starward_x64.exe", res.LauncherX64.Hash);
-        await DownloadFileAndCheckHashAsync(res.LauncherArm64.Url, "publish/pub_res/Starward_arm64.exe", res.LauncherArm64.Hash);
+        await DownloadFileAndCheckHashAsync(res.SetupX64.Url, "publish/pub_res/Nebula.Setup_x64.exe", res.SetupX64.Hash);
+        await DownloadFileAndCheckHashAsync(res.SetupArm64.Url, "publish/pub_res/Nebula.Setup_arm64.exe", res.SetupArm64.Hash);
+        await DownloadFileAndCheckHashAsync(res.LauncherX64.Url, "publish/pub_res/Nebula_x64.exe", res.LauncherX64.Hash);
+        await DownloadFileAndCheckHashAsync(res.LauncherArm64.Url, "publish/pub_res/Nebula_arm64.exe", res.LauncherArm64.Hash);
         return res;
     }
 

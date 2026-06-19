@@ -1,0 +1,9 @@
+namespace Nebula.Features.GameLauncher;
+
+/// <summary>
+/// 游戏安装路径变更
+/// </summary>
+internal class GameInstallPathChangedMessage
+{
+
+}

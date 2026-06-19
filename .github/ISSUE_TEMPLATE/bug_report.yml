@@ -42,9 +42,9 @@ body:
       description: If applicable, add screenshots here to help explain your problem.
 
   - type: input
-    id: starward_ver
+    id: nebula_ver
     attributes:
-      label: Starward Version
+      label: Nebula Version
       placeholder:
     validations:
       required: true

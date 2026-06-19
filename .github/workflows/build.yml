@@ -40,13 +40,13 @@ jobs:
     - name: Build
       run: |
         $sha = "${{ steps.sha.outputs.sha }}"
-        New-Item -Path "build/Starward/" -Type Directory
-        msbuild src/Starward.Launcher "-property:Configuration=$env:Configuration;Platform=$env:Platform;OutDir=$(Resolve-Path "build/Starward/")"
-        dotnet publish src/Starward -c $env:Configuration -r "win-$env:Platform" -o "build/Starward/app-build.$sha" -p:Platform=$env:Platform -p:Version="0.0.1-build.$sha" -p:DefineConstants=DONOT_CHECK_UPDATE
-        Set-Content "build/Starward/version.ini" -Value "version=build.$sha"
+        New-Item -Path "build/Nebula/" -Type Directory
+        msbuild src/Nebula.Launcher "-property:Configuration=$env:Configuration;Platform=$env:Platform;OutDir=$(Resolve-Path "build/Nebula/")"
+        dotnet publish src/Nebula -c $env:Configuration -r "win-$env:Platform" -o "build/Nebula/app-build.$sha" -p:Platform=$env:Platform -p:Version="0.0.1-build.$sha" -p:DefineConstants=DONOT_CHECK_UPDATE
+        Set-Content "build/Nebula/version.ini" -Value "version=build.$sha"
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v7
       with:
-        name: Starward_${{ matrix.configuration }}_${{ matrix.platform }}_${{ steps.sha.outputs.sha }}
-        path: build/Starward/
+        name: Nebula_${{ matrix.configuration }}_${{ matrix.platform }}_${{ steps.sha.outputs.sha }}
+        path: build/Nebula/

@@ -218,6 +218,20 @@ rcf/
 
 # Windows Store app package directories and files
 Assets/
+!src/Nebula/Assets/
+!src/Nebula/Assets/Image/
+!src/Nebula/Assets/Image/cover_arknights.jpg
+!src/Nebula/Assets/Image/cover_arknights_launcher.jpg
+!src/Nebula/Assets/Image/cover_arknights_launcher.png
+!src/Nebula/Assets/Image/cover_endfield.jpg
+!src/Nebula/Assets/Image/cover_endfield_launcher.png
+!src/Nebula/Assets/Image/cover_wutheringwaves.jpg
+!src/Nebula/Assets/Image/cover_wutheringwaves_launcher.png
+!src/Nebula/Assets/Image/icon_arknights.ico
+!src/Nebula/Assets/Image/icon_arknights.jpg
+!src/Nebula/Assets/Image/icon_endfield.ico
+!src/Nebula/Assets/Image/icon_endfield.jpg
+!src/Nebula/Assets/Image/icon_wutheringwaves.ico
 AppPackages/
 BundleArtifacts/
 Package.StoreAssociation.xml

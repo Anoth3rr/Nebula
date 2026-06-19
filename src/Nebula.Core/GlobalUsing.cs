@@ -1,0 +1,1 @@
+global using Nebula.Core.Localization;

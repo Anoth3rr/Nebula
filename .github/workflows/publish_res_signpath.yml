@@ -49,10 +49,10 @@ jobs:
       with:
         name: pub_res_unsigned_${{ steps.detect-tag.outputs.tag }}
         path: |
-          publish/pub_res/Starward.Setup_x64_${{ steps.detect-tag.outputs.tag }}.exe
-          publish/pub_res/Starward.Setup_arm64_${{ steps.detect-tag.outputs.tag }}.exe
-          publish/pub_res/Starward_x64_${{ steps.detect-tag.outputs.tag }}.exe
-          publish/pub_res/Starward_arm64_${{ steps.detect-tag.outputs.tag }}.exe
+          publish/pub_res/Nebula.Setup_x64_${{ steps.detect-tag.outputs.tag }}.exe
+          publish/pub_res/Nebula.Setup_arm64_${{ steps.detect-tag.outputs.tag }}.exe
+          publish/pub_res/Nebula_x64_${{ steps.detect-tag.outputs.tag }}.exe
+          publish/pub_res/Nebula_arm64_${{ steps.detect-tag.outputs.tag }}.exe
         if-no-files-found: error
 
     - name: Sign with SignPath
@@ -80,10 +80,10 @@ jobs:
         path: |
           publish/pub_res/pub_res.json
           publish/pub_res/pub_res_${{ steps.detect-tag.outputs.tag }}.json
-          publish/pub_res/Starward.Setup_x64_${{ steps.detect-tag.outputs.tag }}.exe
-          publish/pub_res/Starward.Setup_arm64_${{ steps.detect-tag.outputs.tag }}.exe
-          publish/pub_res/Starward_x64_${{ steps.detect-tag.outputs.tag }}.exe
-          publish/pub_res/Starward_arm64_${{ steps.detect-tag.outputs.tag }}.exe
+          publish/pub_res/Nebula.Setup_x64_${{ steps.detect-tag.outputs.tag }}.exe
+          publish/pub_res/Nebula.Setup_arm64_${{ steps.detect-tag.outputs.tag }}.exe
+          publish/pub_res/Nebula_x64_${{ steps.detect-tag.outputs.tag }}.exe
+          publish/pub_res/Nebula_arm64_${{ steps.detect-tag.outputs.tag }}.exe
         if-no-files-found: error
 
     - name: Setup ossutil
@@ -97,7 +97,7 @@ jobs:
     - name: Upload signed pub_res to OSS
       if: ${{ vars.ENABLE_PUBRES_UPLOAD == 'true' }}
       run: |
-        ossutil cp ./publish/pub_res/ oss://starward-static/pub_res/ -r -f -j 20
+        ossutil cp ./publish/pub_res/ oss://nebula-static/pub_res/ -r -f -j 20
       env:
         OSS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY_ID }}
         OSS_ACCESS_KEY_SECRET: ${{ secrets.ACCESS_KEY_SECRET }}

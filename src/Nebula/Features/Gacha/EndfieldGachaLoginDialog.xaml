@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentDialog x:Class="Nebula.Features.Gacha.EndfieldGachaLoginDialog"
+               xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+               Title="账号登录"
+               PrimaryButtonText="保存账号"
+               SecondaryButtonText="取消"
+               DefaultButton="Primary"
+               IsPrimaryButtonEnabled="False"
+               PrimaryButtonClick="ContentDialog_PrimaryButtonClick"
+               Style="{ThemeResource DefaultContentDialogStyle}"
+               mc:Ignorable="d">
+
+    <ContentDialog.Resources>
+        <x:Double x:Key="ContentDialogMaxWidth">560</x:Double>
+    </ContentDialog.Resources>
+
+    <StackPanel MinWidth="480" Spacing="14">
+        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                   Text="登录过程参考 endfield-gacha：先获取账号 Token，再读取绑定的终末地账号。"
+                   TextWrapping="Wrap" />
+
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <RadioButton x:Name="RadioButton_Hypergryph"
+                         Content="官服"
+                         GroupName="EndfieldProvider"
+                         IsChecked="True" />
+            <RadioButton x:Name="RadioButton_Gryphline"
+                         Grid.Column="1"
+                         Content="国际服"
+                         GroupName="EndfieldProvider" />
+        </Grid>
+
+        <StackPanel Spacing="8">
+            <Button HorizontalAlignment="Stretch"
+                    Click="Button_OpenLogin_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon FontSize="16" Glyph="&#xE774;" />
+                    <TextBlock Text="打开官网登录" />
+                </StackPanel>
+            </Button>
+            <Button HorizontalAlignment="Stretch"
+                    Click="Button_OpenToken_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon FontSize="16" Glyph="&#xE8D7;" />
+                    <TextBlock Text="打开 Token 页面" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+        <TextBox x:Name="TextBox_Token"
+                 Header="Token"
+                 PlaceholderText="粘贴 Token 页面返回的 token 或完整 JSON"
+                 TextChanged="TextBox_Token_TextChanged"
+                 TextWrapping="Wrap" />
+
+        <Button x:Name="Button_LoadAccounts"
+                HorizontalAlignment="Stretch"
+                Click="Button_LoadAccounts_Click"
+                IsEnabled="False">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <FontIcon FontSize="16" Glyph="&#xE895;" />
+                <TextBlock Text="获取账号" />
+            </StackPanel>
+        </Button>
+
+        <ComboBox x:Name="ComboBox_Accounts"
+                  Header="选择账号"
+                  HorizontalAlignment="Stretch"
+                  DisplayMemberPath="DisplayText"
+                  SelectionChanged="ComboBox_Accounts_SelectionChanged" />
+
+        <ProgressRing x:Name="ProgressRing_Loading"
+                      Width="28"
+                      Height="28"
+                      HorizontalAlignment="Center"
+                      IsActive="False"
+                      Visibility="Collapsed" />
+    </StackPanel>
+</ContentDialog>

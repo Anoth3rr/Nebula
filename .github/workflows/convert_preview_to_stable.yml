@@ -40,7 +40,7 @@ jobs:
     - name: Upload to OSS
       run: |
         rm -rf ./.git ./.github
-        ossutil cp ./ oss://starward-static/ -r -f --content-type "application/json" --cache-control "public, s-maxage=86400"
+        ossutil cp ./ oss://nebula-static/ -r -f --content-type "application/json" --cache-control "public, s-maxage=86400"
       env:
         OSS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY_ID }}
         OSS_ACCESS_KEY_SECRET: ${{ secrets.ACCESS_KEY_SECRET }}
