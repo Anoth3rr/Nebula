@@ -1,72 +1,67 @@
-# Nebula って何ですか?
+[English](../README.md) | [简体中文](./README.zh-CN.md) | 日本語
 
-**Nebula** は、崩壊:スターレイルのスローガン「May This Journey Lead Us Nebula」(この旅が私たちを星へと導くように)に由来しています。 **Nebula** は、miHoYo のすべてのデスクトップ版ゲームをサポートするゲームランチャーです。このプロジェクトの目標は、公式ランチャーを完全に置き換える事と更にいくつかの拡張機能を追加する事になります。
 
-ゲームのダウンロードとインストールに加えて以下の機能が含まれます:
+# Nebula
+
+Nebula は、複数のパブリッシャーのゲームを統合するために開発されたオープンソースのサードパーティ製ランチャーです。HoYoverse のすべての PC ゲーム、Hypergryph のすべての PC ゲーム、Wuthering Waves に対応し、中国国内の一部の二次元ゲームを統合することを目標にしています。ランチャーの基本機能に加えて、個人的な需要に応じて以下のような拡張機能も追加しています:
 
 -  ゲームのプレイ時間を記録
 -  ゲームアカウントの切り替え
 -  ゲームのスクリーンショットを表示
--  ガチャの記録を保存
--  HoYoLAB ツールボックス
+-  ガチャ記録を保存
+-  ゲームサーバーの切り替え
 
-さらに多くの機能の追加を計画しています...
+さらに多くの機能は、ぜひ実際に探索してみてください。
 
-> Nebula は、ガチャアイテムの画像など開発者がゲームデータやリソース関連と言った断続的に更新を必要とする物は実装しません。
+
+## Fork について
+
+このプロジェクトは [Scighost/Starward](https://github.com/Scighost/Starward) から fork されています。また、[wuwatracker/wuwatracker](https://github.com/wuwatracker/wuwatracker) と [bhaoo/endfield-gacha](https://github.com/bhaoo/endfield-gacha) のアイデアや実装も参考にしています。
+
+
+## 更新履歴
+
+### v0.0.0
+
+- Arknights、Arknights: Endfield、Wuthering Waves のサポート項目を追加し、利用可能な範囲で中国本土版とグローバル版のゲーム識別子を追加しました。
+- Wuthering Waves のガチャ記録に対応しました。アイテムメタデータと取得ロジックは [wuwatracker/wuwatracker](https://github.com/wuwatracker/wuwatracker) を参考にしています。
+- Arknights: Endfield のガチャ記録に対応しました。アカウント連携、token ベースの取得フロー、キャラクター/武器プール解析、インポートと統計連携を含み、[bhaoo/endfield-gacha](https://github.com/bhaoo/endfield-gacha) を参考にしています。
+- Skland Wiki から Endfield のアイテムメタデータを同期し、ローカルの `EndfieldGachaInfo` に保存して、アイコン照合と既存ガチャ記録のアイテム名更新を行う機能を追加しました。
+- URL Protocol ドキュメントを拡張し、`endfield_cn`、`endfield_global`、`wutheringwaves_cn`、`wutheringwaves_global` のゲーム識別子を追加しました。
+- Genshin Impact、Honkai: Star Rail、Genshin Impact、Arknights の公式サーバーと Bilibili サーバーの切り替えに対応しました。
+
 
 ## ダウンロード
 
 始めに使用しているデバイスが以下の条件を満たしている必要があります:
 
-- Windows 10 1809 (17763) 以降の環境である事
-- [Visual C++ ランタイム](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist)がインストール済みである事
-- [WebView2 ランタイム](https://developer.microsoft.com/microsoft-edge/webview2)がインストール済みである事
-- Windows 10 を使用しているユーザーは、[Segoe Fluent Icons](https://aka.ms/SegoeFluentIcons) フォントのインストールを推奨します
+- Windows 10 1809 (17763) 以降
+- [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2) がインストール済みであること
+- [WebP Image Extension](https://apps.microsoft.com/detail/9pg2dk419drg) がインストール済みであること
+- より良い体験のため、システム設定で **透明効果** と **アニメーション効果** を有効にしてください
 
-[GitHub のリリースページ](https://github.com/Anoth3rr/Nebula/releases)から使用している CPU のアーキテクチャに対応したパッケージをダウンロードして展開を行い、`Nebula.exe` のプロンプトに従って操作をしてください。
+>[WebP Image Extension](https://apps.microsoft.com/detail/9pg2dk419drg) は通常システムに同梱されています。アプリで背景画像が正しく表示されない場合は、インストールされているか確認してください。
 
-一部のデバイスで `Nebula.exe` を実行時にクラッシュをする問題が発生する事があります。この問題が発生した場合は、`Nebula.exe` が存在するフォルダーに `config.ini` のファイルを作成して、以下を貼り付けてください。`config.ini` の詳細は、[docs/Configuration.ja-JP.md](./Configuration.ja-JP.md) を参照してください。
+[GitHub Release](https://github.com/Anoth3rr/Nebula/releases) から CPU アーキテクチャに対応したパッケージをダウンロードして展開し、`Nebula.exe` を実行して表示される案内に従ってください。
 
-``` ini
-UserDataFolder=.
-```
-
-
-## 翻訳
-
-[![de-DE translation](https://img.shields.io/badge/dynamic/json?color=blue&label=de-DE&style=flat&logo=crowdin&query=%24.progress.0.data.translationProgress&url=https%3A%2F%2Fbadges.awesome-crowdin.com%2Fstats-15878835-595799.json)](https://crowdin.com/project/nebula/de)
-[![en-US translation](https://img.shields.io/badge/any_text-100%25-blue?logo=crowdin&label=en-US)](https://crowdin.com/project/nebula)
-[![it-IT translation](https://img.shields.io/badge/dynamic/json?color=blue&label=it-IT&style=flat&logo=crowdin&query=%24.progress.2.data.translationProgress&url=https%3A%2F%2Fbadges.awesome-crowdin.com%2Fstats-15878835-595799.json)](https://crowdin.com/project/nebula/it)
-[![ja-JP translation](https://img.shields.io/badge/dynamic/json?color=blue&label=ja-JP&style=flat&logo=crowdin&query=%24.progress.3.data.translationProgress&url=https%3A%2F%2Fbadges.awesome-crowdin.com%2Fstats-15878835-595799.json)](https://crowdin.com/project/nebula/ja)
-[![ko-KR translation](https://img.shields.io/badge/dynamic/json?color=blue&label=ko-KR&style=flat&logo=crowdin&query=%24.progress.4.data.translationProgress&url=https%3A%2F%2Fbadges.awesome-crowdin.com%2Fstats-15878835-595799.json)](https://crowdin.com/project/nebula/ko)
-[![ru-RU translation](https://img.shields.io/badge/dynamic/json?color=blue&label=ru-RU&style=flat&logo=crowdin&query=%24.progress.5.data.translationProgress&url=https%3A%2F%2Fbadges.awesome-crowdin.com%2Fstats-15878835-595799.json)](https://crowdin.com/project/nebula/ru)
-[![th-TH translation](https://img.shields.io/badge/dynamic/json?color=blue&label=th-TH&style=flat&logo=crowdin&query=%24.progress.6.data.translationProgress&url=https%3A%2F%2Fbadges.awesome-crowdin.com%2Fstats-15878835-595799.json)](https://crowdin.com/project/nebula/th)
-[![vi-VN translation](https://img.shields.io/badge/dynamic/json?color=blue&label=vi-VN&style=flat&logo=crowdin&query=%24.progress.7.data.translationProgress&url=https%3A%2F%2Fbadges.awesome-crowdin.com%2Fstats-15878835-595799.json)](https://crowdin.com/project/nebula/vi)
-[![zh-CN translation](https://img.shields.io/badge/dynamic/json?color=blue&label=zh-CN&style=flat&logo=crowdin&query=%24.progress.8.data.translationProgress&url=https%3A%2F%2Fbadges.awesome-crowdin.com%2Fstats-15878835-595799.json)](https://crowdin.com/project/nebula/zh-CN)
-[![zh-TW translation](https://img.shields.io/badge/dynamic/json?color=blue&label=zh-TW&style=flat&logo=crowdin&query=%24.progress.9.data.translationProgress&url=https%3A%2F%2Fbadges.awesome-crowdin.com%2Fstats-15878835-595799.json)](https://crowdin.com/project/nebula/zh-TW)
-
-Nebula はローカライズに[Crowdin](https://crowdin.com/project/nebula) を使用しています。機械翻訳がされた英文を原文として提供をしています。現地語の翻訳や校正が行えますのでご参加を是非ともお待ちしています。 新しい言語を翻訳したい場合は、Issue を作成してください。
 
 ## 開発
 
-プロジェクトをローカルでコンパイルするには、Visual Studio 2022をインストールして以下のワークロードを選択する必要があります:
+プロジェクトをローカルでコンパイルするには、Visual Studio 2022 をインストールし、以下のワークロードを選択する必要があります:
 
 -  .NET デスクトップ開発
 -  C++ によるデスクトップ開発
 -  ユニバーサル Windows プラットフォーム開発
 
+
 ## 謝辞
 
- まず最初に、このプロジェクトのインスパイアとなる 「Collapse」 の開発者 [neon-nyan](https://github.com/neon-nyan) 氏に感謝をします。Nebula は彼が作ったリソースだけでなく、「ユーザーインターフェース」も参考にしています。  [Collapse](https://github.com/neon-nyan/Collapse) のコードから多くの事を学び、私の開発プロセスをよりスムーズにしてくれました。
+このプロジェクトは以下のプロジェクトを参考にし、多くの恩恵を受けています。各プロジェクトの作者とコミュニティに心より感謝します:
 
-それから、無料の CDN を提供してくれた [CloudFlare](https://www.cloudflare.com/) と、オープンソースプロジェクト向けに無料のコード署名を提供してくれた [SignPath Foundation](https://signpath.org/) に感謝します。
+-  [Scighost/Starward](https://github.com/Scighost/Starward): このプロジェクトの fork 元です。
+-  [CollapseLauncher/Collapse](https://github.com/CollapseLauncher/Collapse): ランチャーの設計と実装の考え方を参考にしました。
+-  [DGP-Studio/Snap.Hutao](https://github.com/DGP-Studio/Snap.Hutao): 開発中に参考にし、関連する助力も受けました。
+-  [wuwatracker/wuwatracker](https://github.com/wuwatracker/wuwatracker): Wuthering Waves のガチャ記録とアイテムメタデータ関連で参考にしました。
+-  [bhaoo/endfield-gacha](https://github.com/bhaoo/endfield-gacha): Arknights: Endfield のガチャ記録関連で参考にしました。
 
-<img alt="cloudflare" height="72px" src="https://github.com/user-attachments/assets/c1fba88e-4cd1-45df-b681-bf5634215f41" />&nbsp;&nbsp;&nbsp;&nbsp;<img alt="signpath foundation" height="72px" src="https://github.com/user-attachments/assets/052c654a-13fa-4e7a-8f1d-9f57c83f438b" />
-  
-および、本プロジェクトで使用されている[サードパーティライブラリ](./docs/ThirdParty.md)。
-
-
-## スクリーンショット
-
-<img width="1200" src="https://github.com/user-attachments/assets/72907881-045e-4271-bf0a-b06e8b3b3fad" />
-
+および、本プロジェクトで使用している[サードパーティライブラリ](./ThirdParty.md)。

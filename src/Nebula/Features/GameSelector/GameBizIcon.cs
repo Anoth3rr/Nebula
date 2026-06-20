@@ -30,6 +30,8 @@ public partial class GameBizIcon : ObservableObject, IEquatable<GameBizIcon>
 
     public string? InstallPath { get; set => SetProperty(ref field, value); }
 
+    public bool IsBilibili => GameBiz.IsBilibili();
+
     public long TotalSize { get; set { field = value; OnPropertyChanged(nameof(TotalSizeText)); } }
 
     public string? TotalSizeText => TotalSize == 0 ? null : $"{TotalSize / GB:F2}GB";

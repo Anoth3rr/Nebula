@@ -77,6 +77,7 @@ internal partial class GameFeatureConfig
             GameBiz.nap_global => nap_global,
             GameBiz.nap_bilibili => nap_bilibili,
             GameBiz.arknights_cn => arknights,
+            GameBiz.arknights_bilibili => arknights,
             GameBiz.arknights_global => arknights,
             GameBiz.endfield_cn => endfield,
             GameBiz.endfield_global => endfield,

@@ -38,6 +38,7 @@ public class GameId : IEquatable<GameId>
             GameBiz.nap_global => new GameId { Id = "U5hbdsT9W7", GameBiz = "nap_global" },
             GameBiz.nap_bilibili => new GameId { Id = "HXAFlmYa17", GameBiz = "nap_bilibili" },
             GameBiz.arknights_cn => new GameId { Id = "local_arknights_cn", GameBiz = "arknights_cn" },
+            GameBiz.arknights_bilibili => new GameId { Id = "local_arknights_bilibili", GameBiz = "arknights_bilibili" },
             GameBiz.arknights_global => new GameId { Id = "local_arknights_global", GameBiz = "arknights_global" },
             GameBiz.endfield_cn => new GameId { Id = "local_endfield_cn", GameBiz = "endfield_cn" },
             GameBiz.endfield_global => new GameId { Id = "local_endfield_global", GameBiz = "endfield_global" },

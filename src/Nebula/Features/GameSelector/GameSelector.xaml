@@ -56,7 +56,21 @@
                                     Height="40"
                                     Source="{x:Bind CurrentGameBizIcon.GameIcon, FallbackValue={x:Null}}"
                                     Style="{ThemeResource NoAnimationImageExStyle}"
-                                    Visibility="{x:Bind IsPinned, Converter={StaticResource BoolToVisibilityReversedConverter}}" />
+                                     Visibility="{x:Bind IsPinned, Converter={StaticResource BoolToVisibilityReversedConverter}}" />
+                    <Border Padding="4,1"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom"
+                            Background="#FF00A1D6"
+                            BorderBrush="White"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Visibility="{x:Bind CurrentGameBizIcon.IsBilibili, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock FontSize="8"
+                                   FontWeight="SemiBold"
+                                   Foreground="White"
+                                   IsTextScaleFactorEnabled="False"
+                                   Text="bili" />
+                    </Border>
                 </Grid>
             </Button>
         </Border>
@@ -149,15 +163,18 @@
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition />
                                             </Grid.ColumnDefinitions>
-                                            <sc:CachedImage Grid.Column="1"
-                                                            Width="48"
-                                                            Height="48"
-                                                            Margin="0,0,8,0"
-                                                            HorizontalAlignment="Right"
-                                                            VerticalAlignment="Center"
-                                                            CornerRadius="8"
-                                                            Source="{x:Bind GameInfo.Display.Icon.Url}"
-                                                            Style="{StaticResource NoAnimationImageExStyle}" />
+                                            <Grid Grid.Column="1"
+                                                  Width="48"
+                                                  Height="48"
+                                                  Margin="0,0,8,0"
+                                                  HorizontalAlignment="Right"
+                                                  VerticalAlignment="Center">
+                                                <sc:CachedImage Width="48"
+                                                                Height="48"
+                                                                CornerRadius="8"
+                                                                Source="{x:Bind GameInfo.Display.Icon.Url}"
+                                                                Style="{StaticResource NoAnimationImageExStyle}" />
+                                            </Grid>
                                             <TextBlock Grid.Column="2"
                                                        Margin="8,0,0,0"
                                                        HorizontalAlignment="Center"
@@ -342,10 +359,26 @@
                                     <DataTemplate x:DataType="local:GameBizIcon">
                                         <StackPanel Orientation="Horizontal" Spacing="12">
                                             <!--  游戏图标  -->
-                                            <sc:CachedImage Width="36"
-                                                            Height="36"
-                                                            CornerRadius="8"
-                                                            Source="{x:Bind GameIcon, FallbackValue={x:Null}}" />
+                                            <Grid Width="36" Height="36">
+                                                <sc:CachedImage Width="36"
+                                                                Height="36"
+                                                                CornerRadius="8"
+                                                                Source="{x:Bind GameIcon, FallbackValue={x:Null}}" />
+                                                <Border Padding="3,0"
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Bottom"
+                                                        Background="#FF00A1D6"
+                                                        BorderBrush="White"
+                                                        BorderThickness="1"
+                                                        CornerRadius="4"
+                                                        Visibility="{x:Bind IsBilibili}">
+                                                    <TextBlock FontSize="7"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="White"
+                                                               IsTextScaleFactorEnabled="False"
+                                                               Text="bili" />
+                                                </Border>
+                                            </Grid>
                                             <!--  游戏名  -->
                                             <TextBlock MinWidth="160"
                                                        VerticalAlignment="Center"
@@ -493,6 +526,20 @@
                             <sc:CachedImage Width="40"
                                             Height="40"
                                             Source="{x:Bind GameIcon}" />
+                            <Border Padding="4,1"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Bottom"
+                                    Background="#FF00A1D6"
+                                    BorderBrush="White"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Visibility="{x:Bind IsBilibili}">
+                                <TextBlock FontSize="8"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           IsTextScaleFactorEnabled="False"
+                                           Text="bili" />
+                            </Border>
                             <Border Background="#60000000" Opacity="{x:Bind MaskOpacity}">
                                 <Border.OpacityTransition>
                                     <ScalarTransition />

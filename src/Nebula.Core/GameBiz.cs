@@ -54,6 +54,7 @@ public record struct GameBiz
 
     public const string arknights = "arknights";
     public const string arknights_cn = "arknights_cn";
+    public const string arknights_bilibili = "arknights_bilibili";
     public const string arknights_global = "arknights_global";
 
     public const string endfield = "endfield";
@@ -91,6 +92,7 @@ public record struct GameBiz
         nap_global,
         nap_bilibili,
         arknights_cn,
+        arknights_bilibili,
         arknights_global,
         endfield_cn,
         endfield_global,
@@ -123,7 +125,7 @@ public record struct GameBiz
         //clgm_cn or clgm_global => true,
         hkrpg_cn or hkrpg_global or hkrpg_bilibili => true,
         nap_cn or nap_global or nap_bilibili => true,
-        arknights_cn or arknights_global => true,
+        arknights_cn or arknights_bilibili or arknights_global => true,
         endfield_cn or endfield_global => true,
         wutheringwaves_cn or wutheringwaves_global => true,
         _ => false,
@@ -187,7 +189,7 @@ public record struct GameBiz
         bh3_asia => GameRegistry.GamePath_bh3_tw,
         nap_cn or nap_bilibili => GameRegistry.GamePath_nap_cn,
         nap_global => GameRegistry.GamePath_nap_global,
-        arknights_cn => GameRegistry.GamePath_arknights_cn,
+        arknights_cn or arknights_bilibili => GameRegistry.GamePath_arknights_cn,
         arknights_global => GameRegistry.GamePath_arknights_global,
         endfield_cn => GameRegistry.GamePath_endfield_cn,
         endfield_global => GameRegistry.GamePath_endfield_global,

@@ -10,7 +10,10 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -61,6 +64,10 @@ internal partial class GameLauncherService
     public static string? GetGameInstallPath(GameBiz gameBiz)
     {
         var path = AppConfig.GetGameInstallPath(gameBiz);
+        if (string.IsNullOrWhiteSpace(path) && GetSharedChinaLauncherGameBiz(gameBiz) is GameBiz sharedGameBiz)
+        {
+            path = AppConfig.GetGameInstallPath(sharedGameBiz);
+        }
         if (string.IsNullOrWhiteSpace(path))
         {
             return null;
@@ -93,6 +100,15 @@ internal partial class GameLauncherService
     {
         storageRemoved = false;
         var path = AppConfig.GetGameInstallPath(gameId.GameBiz);
+        GameBiz? sharedGameBiz = null;
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            sharedGameBiz = GetSharedChinaLauncherGameBiz(gameId.GameBiz);
+            if (sharedGameBiz is GameBiz shared)
+            {
+                path = AppConfig.GetGameInstallPath(shared);
+            }
+        }
         if (string.IsNullOrWhiteSpace(path))
         {
             return null;
@@ -102,7 +118,7 @@ internal partial class GameLauncherService
         {
             return path;
         }
-        else if (AppConfig.GetGameInstallPathRemovable(gameId.GameBiz))
+        else if (AppConfig.GetGameInstallPathRemovable(sharedGameBiz ?? gameId.GameBiz))
         {
             storageRemoved = true;
             return path;
@@ -235,7 +251,7 @@ internal partial class GameLauncherService
         {
             GameBiz.hk4e_cn or GameBiz.hk4e_bilibili => "YuanShen.exe",
             GameBiz.hk4e_global => "GenshinImpact.exe",
-            GameBiz.arknights_cn or GameBiz.arknights_global => FindGameExeName(gameBiz) ?? "Arknights.exe",
+            GameBiz.arknights_cn or GameBiz.arknights_bilibili or GameBiz.arknights_global => FindGameExeName(gameBiz) ?? "Arknights.exe",
             GameBiz.endfield_cn or GameBiz.endfield_global => FindGameExeName(gameBiz) ?? "Endfield.exe",
             GameBiz.wutheringwaves_cn or GameBiz.wutheringwaves_global => FindGameExeName(gameBiz) ?? "Wuthering Waves.exe",
             _ => gameBiz.Game switch
@@ -397,6 +413,12 @@ internal partial class GameLauncherService
                     throw new FileNotFoundException("Game exe not found", name);
                 }
             }
+            string? configInstallPath = Directory.Exists(installPath) ? installPath : GetGameInstallPath(gameId);
+            if (!string.IsNullOrWhiteSpace(configInstallPath))
+            {
+                await SetChinaLauncherGameConfigAsync(gameId, configInstallPath);
+                ApplyLocalSwitcherFiles(gameId.GameBiz, configInstallPath);
+            }
             arg = AppConfig.GetStartArgument(gameId.GameBiz)?.Trim();
             if (AppConfig.EnableLoginAuthTicket is true)
             {
@@ -480,14 +502,360 @@ internal partial class GameLauncherService
             string relativePath = GetRelativePathIfInRemovableStorage(path, out bool removable);
             AppConfig.SetGameInstallPath(gameBiz, relativePath);
             AppConfig.SetGameInstallPathRemovable(gameBiz, removable);
+            InstallLocalPluginPackage(gameBiz, path);
+            if (GetSharedChinaLauncherGameBiz(gameBiz) is GameBiz sharedGameBiz)
+            {
+                AppConfig.SetGameInstallPath(sharedGameBiz, relativePath);
+                AppConfig.SetGameInstallPathRemovable(sharedGameBiz, removable);
+            }
         }
         else
         {
             path = null;
             AppConfig.SetGameInstallPath(gameBiz, null);
             AppConfig.SetGameInstallPathRemovable(gameBiz, false);
+            if (GetSharedChinaLauncherGameBiz(gameBiz) is GameBiz sharedGameBiz)
+            {
+                AppConfig.SetGameInstallPath(sharedGameBiz, null);
+                AppConfig.SetGameInstallPathRemovable(sharedGameBiz, false);
+            }
         }
         return path;
+    }
+
+
+
+    private static GameBiz? GetSharedChinaLauncherGameBiz(GameBiz gameBiz)
+    {
+        return gameBiz.Value switch
+        {
+            GameBiz.hk4e_cn => GameBiz.hk4e_bilibili,
+            GameBiz.hk4e_bilibili => GameBiz.hk4e_cn,
+            GameBiz.hkrpg_cn => GameBiz.hkrpg_bilibili,
+            GameBiz.hkrpg_bilibili => GameBiz.hkrpg_cn,
+            GameBiz.arknights_cn => GameBiz.arknights_bilibili,
+            GameBiz.arknights_bilibili => GameBiz.arknights_cn,
+            _ => null,
+        };
+    }
+
+
+
+    private static void InstallLocalPluginPackage(GameBiz gameBiz, string installPath, ILogger? logger = null)
+    {
+        if (GetLocalPluginPackage(gameBiz) is not (string packageFileName, string dataFolder))
+        {
+            return;
+        }
+
+        string packagePath = Path.Join(AppContext.BaseDirectory, "Plugins", packageFileName);
+        if (!File.Exists(packagePath))
+        {
+            logger?.LogWarning("Local plugin package not found: {path}", packagePath);
+            return;
+        }
+
+        try
+        {
+            string? pcGameSdkPath = string.IsNullOrWhiteSpace(dataFolder) ? null : Path.Join(installPath, dataFolder, "Plugins", "PCGameSDK");
+            if (pcGameSdkPath is not null)
+            {
+                UnlockPCGameSDK(pcGameSdkPath);
+            }
+            ZipFile.ExtractToDirectory(packagePath, installPath, true);
+            if (pcGameSdkPath is not null)
+            {
+                LockPCGameSDK(pcGameSdkPath);
+            }
+            logger?.LogInformation("Installed local plugin package ({GameBiz}) from {package} to {installPath}", gameBiz, packagePath, installPath);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogError(ex, "Install local plugin package failed ({GameBiz}) from {package} to {installPath}", gameBiz, packagePath, installPath);
+        }
+    }
+
+
+
+    private static (string PackageFileName, string DataFolder)? GetLocalPluginPackage(GameBiz gameBiz)
+    {
+        return gameBiz.Value switch
+        {
+            GameBiz.hk4e_cn or GameBiz.hk4e_bilibili => ("原神.zip", "YuanShen_Data"),
+            GameBiz.hkrpg_cn or GameBiz.hkrpg_bilibili => ("崩坏星穹铁道.zip", "StarRail_Data"),
+            GameBiz.nap_cn or GameBiz.nap_bilibili => ("绝区零.zip", "ZenlessZoneZero_Data"),
+            GameBiz.arknights_cn or GameBiz.arknights_bilibili => ("明日方舟.zip", ""),
+            _ => null,
+        };
+    }
+
+
+
+    private static void ApplyLocalSwitcherFiles(GameBiz gameBiz, string installPath)
+    {
+        string? switchFolder = gameBiz.Value switch
+        {
+            GameBiz.arknights_cn => "B2C",
+            GameBiz.arknights_bilibili => "C2B",
+            _ => null,
+        };
+        if (switchFolder is null)
+        {
+            return;
+        }
+
+        string source = Path.Join(installPath, switchFolder);
+        if (!Directory.Exists(source))
+        {
+            return;
+        }
+        CopyDirectory(source, installPath);
+    }
+
+
+
+    private static void CopyDirectory(string source, string target)
+    {
+        Directory.CreateDirectory(target);
+        foreach (string directory in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
+        {
+            string relativePath = Path.GetRelativePath(source, directory);
+            Directory.CreateDirectory(Path.Join(target, relativePath));
+        }
+        foreach (string file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        {
+            string relativePath = Path.GetRelativePath(source, file);
+            string targetFile = Path.Join(target, relativePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(targetFile)!);
+            if (File.Exists(targetFile))
+            {
+                File.SetAttributes(targetFile, File.GetAttributes(targetFile) & ~FileAttributes.ReadOnly);
+            }
+            File.Copy(file, targetFile, true);
+        }
+    }
+
+
+
+    private static void UnlockPCGameSDK(string path)
+    {
+        if (!Directory.Exists(path) && !File.Exists(path))
+        {
+            return;
+        }
+
+        SetReadOnly(path, false);
+        RemoveWriteDenyRules(path);
+    }
+
+
+
+    private static void LockPCGameSDK(string path)
+    {
+        if (!Directory.Exists(path) && !File.Exists(path))
+        {
+            return;
+        }
+
+        SetReadOnly(path, true);
+        AddWriteDenyRules(path);
+    }
+
+
+
+    private static void SetReadOnly(string path, bool readOnly)
+    {
+        if (File.Exists(path))
+        {
+            SetFileReadOnly(path, readOnly);
+            return;
+        }
+
+        if (!Directory.Exists(path))
+        {
+            return;
+        }
+
+        foreach (string item in Directory.EnumerateFileSystemEntries(path, "*", SearchOption.AllDirectories))
+        {
+            if (File.Exists(item))
+            {
+                SetFileReadOnly(item, readOnly);
+            }
+            else if (Directory.Exists(item))
+            {
+                SetDirectoryReadOnly(item, readOnly);
+            }
+        }
+        SetDirectoryReadOnly(path, readOnly);
+    }
+
+
+
+    private static void SetFileReadOnly(string path, bool readOnly)
+    {
+        FileAttributes attributes = File.GetAttributes(path);
+        attributes = readOnly ? attributes | FileAttributes.ReadOnly : attributes & ~FileAttributes.ReadOnly;
+        File.SetAttributes(path, attributes);
+    }
+
+
+
+    private static void SetDirectoryReadOnly(string path, bool readOnly)
+    {
+        FileAttributes attributes = File.GetAttributes(path);
+        attributes = readOnly ? attributes | FileAttributes.ReadOnly : attributes & ~FileAttributes.ReadOnly;
+        File.SetAttributes(path, attributes);
+    }
+
+
+
+    private static void RemoveWriteDenyRules(string path)
+    {
+        FileSystemSecurity security = GetFileSystemSecurity(path);
+        foreach (IdentityReference identity in GetWriteDenyIdentities())
+        {
+            FileSystemAccessRule rule = CreateWriteDenyRule(identity);
+            security.RemoveAccessRuleAll(rule);
+        }
+        SetFileSystemSecurity(path, security);
+    }
+
+
+
+    private static void AddWriteDenyRules(string path)
+    {
+        FileSystemSecurity security = GetFileSystemSecurity(path);
+        foreach (IdentityReference identity in GetWriteDenyIdentities())
+        {
+            security.RemoveAccessRuleAll(CreateWriteDenyRule(identity));
+            security.AddAccessRule(CreateWriteDenyRule(identity));
+        }
+        SetFileSystemSecurity(path, security);
+    }
+
+
+
+    private static FileSystemSecurity GetFileSystemSecurity(string path)
+    {
+        return Directory.Exists(path)
+            ? new DirectoryInfo(path).GetAccessControl()
+            : new FileInfo(path).GetAccessControl();
+    }
+
+
+
+    private static void SetFileSystemSecurity(string path, FileSystemSecurity security)
+    {
+        if (Directory.Exists(path) && security is DirectorySecurity directorySecurity)
+        {
+            new DirectoryInfo(path).SetAccessControl(directorySecurity);
+        }
+        else if (File.Exists(path) && security is FileSecurity fileSecurity)
+        {
+            new FileInfo(path).SetAccessControl(fileSecurity);
+        }
+    }
+
+
+
+    private static IEnumerable<IdentityReference> GetWriteDenyIdentities()
+    {
+        yield return new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
+        yield return new SecurityIdentifier(WellKnownSidType.WorldSid, null);
+    }
+
+
+
+    private static FileSystemAccessRule CreateWriteDenyRule(IdentityReference identity)
+    {
+        const FileSystemRights rights =
+            FileSystemRights.Write |
+            FileSystemRights.CreateFiles |
+            FileSystemRights.CreateDirectories |
+            FileSystemRights.AppendData |
+            FileSystemRights.WriteData |
+            FileSystemRights.WriteAttributes |
+            FileSystemRights.WriteExtendedAttributes |
+            FileSystemRights.Delete |
+            FileSystemRights.DeleteSubdirectoriesAndFiles |
+            FileSystemRights.ChangePermissions |
+            FileSystemRights.TakeOwnership;
+
+        return new FileSystemAccessRule(
+            identity,
+            rights,
+            InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+            PropagationFlags.None,
+            AccessControlType.Deny);
+    }
+
+
+
+    private static async Task SetChinaLauncherGameConfigAsync(GameId gameId, string installPath)
+    {
+        if (gameId.GameBiz.Value is not (GameBiz.hk4e_cn or GameBiz.hk4e_bilibili or GameBiz.hkrpg_cn or GameBiz.hkrpg_bilibili))
+        {
+            return;
+        }
+
+        string path = Path.Join(installPath, "config.ini");
+        if (!File.Exists(path))
+        {
+            return;
+        }
+
+        Dictionary<string, string> values = gameId.GameBiz.Server switch
+        {
+            "cn" => new()
+            {
+                ["channel"] = "1",
+                ["sub_channel"] = "1",
+                ["cps"] = "mihoyo",
+            },
+            "bilibili" => new()
+            {
+                ["channel"] = "14",
+                ["sub_channel"] = "0",
+                ["cps"] = "bilibili",
+            },
+            _ => [],
+        };
+        if (values.Count == 0)
+        {
+            return;
+        }
+
+        string[] lines = await File.ReadAllLinesAsync(path);
+        HashSet<string> existingKeys = new(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string line = lines[i];
+            int index = line.IndexOf('=');
+            if (index <= 0)
+            {
+                continue;
+            }
+            string key = line[..index].Trim();
+            if (values.TryGetValue(key, out string? value))
+            {
+                lines[i] = $"{key}={value}";
+                existingKeys.Add(key);
+            }
+        }
+
+        await using StreamWriter writer = new(path, false);
+        foreach (string line in lines)
+        {
+            await writer.WriteLineAsync(line);
+        }
+        foreach ((string key, string value) in values)
+        {
+            if (!existingKeys.Contains(key))
+            {
+                await writer.WriteLineAsync($"{key}={value}");
+            }
+        }
     }
 
 
