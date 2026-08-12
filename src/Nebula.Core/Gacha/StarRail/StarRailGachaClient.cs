@@ -22,11 +22,15 @@ public class StarRailGachaClient : GachaLogClient
 
     protected override string GetGachaUrlPrefix(string gachaUrl, string? lang = null)
     {
-        var match = Regex.Match(gachaUrl, @"(https://webstatic\.mihoyo\.com[!-z]+)");
-        if (match.Success)
+        foreach (Match webMatch in Regex.Matches(gachaUrl, @"(https://webstatic\.mihoyo\.com[!-z]+)"))
         {
-            gachaUrl = match.Groups[1].Value;
-            var auth = gachaUrl.Substring(gachaUrl.IndexOf('?'));
+            gachaUrl = webMatch.Groups[1].Value;
+            var queryIndex = gachaUrl.IndexOf('?');
+            if (queryIndex < 0)
+            {
+                continue;
+            }
+            var auth = gachaUrl[queryIndex..];
             gachaUrl = API_PREFIX_SR_CN + auth;
             if (!string.IsNullOrWhiteSpace(lang))
             {
@@ -34,11 +38,15 @@ public class StarRailGachaClient : GachaLogClient
             }
             return gachaUrl;
         }
-        match = Regex.Match(gachaUrl, @"(https://gs\.hoyoverse\.com[!-z]+)");
-        if (match.Success)
+        foreach (Match osMatch in Regex.Matches(gachaUrl, @"(https://gs\.hoyoverse\.com[!-z]+)"))
         {
-            gachaUrl = match.Groups[1].Value;
-            var auth = gachaUrl.Substring(gachaUrl.IndexOf('?'));
+            gachaUrl = osMatch.Groups[1].Value;
+            var queryIndex = gachaUrl.IndexOf('?');
+            if (queryIndex < 0)
+            {
+                continue;
+            }
+            var auth = gachaUrl[queryIndex..];
             gachaUrl = API_PREFIX_SR_OS + auth;
             if (!string.IsNullOrWhiteSpace(lang))
             {
@@ -46,7 +54,7 @@ public class StarRailGachaClient : GachaLogClient
             }
             return gachaUrl;
         }
-        match = Regex.Match(gachaUrl, @"(https://public-operation-hkrpg[!-z]+)");
+        var match = Regex.Match(gachaUrl, @"(https://public-operation-hkrpg[!-z]+)");
         if (match.Success)
         {
             gachaUrl = match.Groups[1].Value;

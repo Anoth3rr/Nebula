@@ -24,8 +24,8 @@ public abstract class GachaLogClient
     protected const string API_PREFIX_YS_CN = "https://public-operation-hk4e.mihoyo.com/gacha_info/api/getGachaLog";
     protected const string API_PREFIX_YS_OS = "https://public-operation-hk4e-sg.hoyoverse.com/gacha_info/api/getGachaLog";
 
-    protected static ReadOnlySpan<byte> SPAN_WEB_PREFIX_YS_CN => "https://webstatic.mihoyo.com/hk4e/event/e20190909gacha-v3/index.html"u8;
-    protected static ReadOnlySpan<byte> SPAN_WEB_PREFIX_YS_OS => "https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/index.html"u8;
+    protected static ReadOnlySpan<byte> SPAN_WEB_PREFIX_YS_CN => "https://webstatic.mihoyo.com/hk4e/event/e20190909gacha"u8;
+    protected static ReadOnlySpan<byte> SPAN_WEB_PREFIX_YS_OS => "https://gs.hoyoverse.com/genshin/event/e20190909gacha"u8;
 
 
 
@@ -34,8 +34,8 @@ public abstract class GachaLogClient
     protected const string API_PREFIX_SR_CN = "https://public-operation-hkrpg.mihoyo.com/common/gacha_record/api/getGachaLog";
     protected const string API_PREFIX_SR_OS = "https://public-operation-hkrpg-sg.hoyoverse.com/common/gacha_record/api/getGachaLog";
 
-    protected static ReadOnlySpan<byte> SPAN_WEB_PREFIX_SR_CN => "https://webstatic.mihoyo.com/hkrpg/event/e20211215gacha-v2/index.html"u8;
-    protected static ReadOnlySpan<byte> SPAN_WEB_PREFIX_SR_OS => "https://gs.hoyoverse.com/hkrpg/event/e20211215gacha-v2/index.html"u8;
+    protected static ReadOnlySpan<byte> SPAN_WEB_PREFIX_SR_CN => "https://webstatic.mihoyo.com/hkrpg/event/e20211215gacha"u8;
+    protected static ReadOnlySpan<byte> SPAN_WEB_PREFIX_SR_OS => "https://gs.hoyoverse.com/hkrpg/event/e20211215gacha"u8;
 
 
     protected const string WEB_CACHE_ZZZ_PATH = @"ZenlessZoneZero_Data\webCaches\Cache\Cache_Data\data_2";
@@ -43,8 +43,8 @@ public abstract class GachaLogClient
     protected const string API_PREFIX_ZZZ_CN = "https://public-operation-nap.mihoyo.com/common/gacha_record/api/getGachaLog";
     protected const string API_PREFIX_ZZZ_OS = "https://public-operation-nap-sg.hoyoverse.com/common/gacha_record/api/getGachaLog";
 
-    protected static ReadOnlySpan<byte> SPAN_WEB_PREFIX_ZZZ_CN => "https://webstatic.mihoyo.com/nap/event/e20230424gacha-v2/index.html"u8;
-    protected static ReadOnlySpan<byte> SPAN_WEB_PREFIX_ZZZ_OS => "https://gs.hoyoverse.com/nap/event/e20230424gacha-v2/index.html"u8;
+    protected static ReadOnlySpan<byte> SPAN_WEB_PREFIX_ZZZ_CN => "https://webstatic.mihoyo.com/nap/event/e20230424gacha"u8;
+    protected static ReadOnlySpan<byte> SPAN_WEB_PREFIX_ZZZ_OS => "https://gs.hoyoverse.com/nap/event/e20230424gacha"u8;
 
 
 
@@ -118,10 +118,13 @@ public abstract class GachaLogClient
 
     public static string? GetGachaUrlFromWebCache(GameBiz gameBiz, string? installPath = null)
     {
-        var file = GetGachaCacheFilePath(gameBiz, installPath);
-        if (File.Exists(file))
+        foreach (var file in GetGachaCacheFilePaths(gameBiz, installPath))
         {
-            return FindMatchStringFromFile(file, GetGachaUrlPattern(gameBiz));
+            var url = FindMatchStringFromFile(file, GetGachaUrlPattern(gameBiz));
+            if (!string.IsNullOrWhiteSpace(url))
+            {
+                return url;
+            }
         }
         return null;
     }
@@ -153,29 +156,52 @@ public abstract class GachaLogClient
             GameBiz.nap_cn or GameBiz.nap_global or GameBiz.nap_bilibili => Path.Join(installPath, WEB_CACHE_ZZZ_PATH),
             _ => throw new ArgumentOutOfRangeException($"Unknown region {gameBiz}"),
         };
-        DateTime lastWriteTime = DateTime.MinValue;
-        if (File.Exists(file))
+        return GetGachaCacheFilePaths(gameBiz, installPath).FirstOrDefault() ?? file;
+    }
+
+
+
+    private static List<string> GetGachaCacheFilePaths(GameBiz gameBiz, string? installPath)
+    {
+        string defaultFile = gameBiz.Value switch
         {
-            lastWriteTime = File.GetLastWriteTime(file);
-        }
+            GameBiz.hk4e_cn or GameBiz.hk4e_bilibili => Path.Join(installPath, WEB_CACHE_PATH_YS_CN),
+            GameBiz.hk4e_global => Path.Join(installPath, WEB_CACHE_PATH_YS_OS),
+            GameBiz.hkrpg_cn or GameBiz.hkrpg_global or GameBiz.hkrpg_bilibili => Path.Join(installPath, WEB_CACHE_SR_PATH),
+            GameBiz.nap_cn or GameBiz.nap_global or GameBiz.nap_bilibili => Path.Join(installPath, WEB_CACHE_ZZZ_PATH),
+            _ => throw new ArgumentOutOfRangeException($"Unknown region {gameBiz}"),
+        };
+        var candidates = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+        AddGachaCacheCandidate(candidates, defaultFile);
+
         string webCache = GetWebCachesFolderPath(gameBiz, installPath);
         if (Directory.Exists(webCache))
         {
-            foreach (var item in Directory.GetDirectories(webCache))
+            try
             {
-                string target = Path.Join(item, @"Cache\Cache_Data\data_2");
-                if (File.Exists(target))
+                foreach (var file in Directory.EnumerateFiles(webCache, "data_*", SearchOption.AllDirectories))
                 {
-                    DateTime targetLastWriteTime = File.GetLastWriteTime(target);
-                    if (targetLastWriteTime > lastWriteTime)
+                    if (file.Contains($"{Path.DirectorySeparatorChar}Cache_Data{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
                     {
-                        file = target;
-                        lastWriteTime = targetLastWriteTime;
+                        AddGachaCacheCandidate(candidates, file);
                     }
                 }
             }
+            catch
+            {
+            }
         }
-        return file;
+        return candidates.OrderByDescending(x => x.Value).Select(x => x.Key).ToList();
+    }
+
+
+
+    private static void AddGachaCacheCandidate(Dictionary<string, DateTime> candidates, string? file)
+    {
+        if (!string.IsNullOrWhiteSpace(file) && File.Exists(file))
+        {
+            candidates[file] = File.GetLastWriteTime(file);
+        }
     }
 
 
@@ -322,14 +348,31 @@ public abstract class GachaLogClient
         var ms = new MemoryStream();
         fs.CopyTo(ms);
         var span = ms.ToArray().AsSpan();
-        var index = span.LastIndexOf(prefix);
-        if (index >= 0)
+        var searchSpan = span;
+        while (true)
         {
-            var length = span[index..].IndexOfAny("\0\""u8);
-            return Encoding.UTF8.GetString(span.Slice(index, length));
+            var index = searchSpan.LastIndexOf(prefix);
+            if (index < 0)
+            {
+                return null;
+            }
+            var urlSpan = searchSpan[index..];
+            var length = urlSpan.IndexOfAny("\0\""u8);
+            if (length < 0)
+            {
+                length = urlSpan.Length;
+            }
+            urlSpan = urlSpan[..length];
+            if (urlSpan.IndexOf("?"u8) >= 0 && urlSpan.IndexOf("authkey"u8) >= 0)
+            {
+                return Encoding.UTF8.GetString(urlSpan);
+            }
+            if (index == 0)
+            {
+                return null;
+            }
+            searchSpan = searchSpan[..index];
         }
-
-        return null;
     }
 
 

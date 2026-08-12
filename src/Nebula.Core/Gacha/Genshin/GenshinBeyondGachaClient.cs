@@ -78,11 +78,15 @@ public class GenshinBeyondGachaClient
 
     protected string GetGachaUrlPrefix(string gachaUrl, string? lang = null)
     {
-        var match = Regex.Match(gachaUrl, @"(https://webstatic\.mihoyo\.com[!-z]+)");
-        if (match.Success)
+        foreach (Match webMatch in Regex.Matches(gachaUrl, @"(https://webstatic\.mihoyo\.com[!-z]+)"))
         {
-            gachaUrl = match.Groups[1].Value;
-            var auth = gachaUrl.Substring(gachaUrl.IndexOf('?')).Replace("#/log", "");
+            gachaUrl = webMatch.Groups[1].Value;
+            var queryIndex = gachaUrl.IndexOf('?');
+            if (queryIndex < 0)
+            {
+                continue;
+            }
+            var auth = gachaUrl[queryIndex..].Replace("#/log", "");
             gachaUrl = API_PREFIX_YS_CN + auth;
             if (!string.IsNullOrWhiteSpace(lang))
             {
@@ -98,11 +102,15 @@ public class GenshinBeyondGachaClient
             }
             return gachaUrl;
         }
-        match = Regex.Match(gachaUrl, @"(https://gs\.hoyoverse\.com[!-z]+)");
-        if (match.Success)
+        foreach (Match osMatch in Regex.Matches(gachaUrl, @"(https://gs\.hoyoverse\.com[!-z]+)"))
         {
-            gachaUrl = match.Groups[1].Value;
-            var auth = gachaUrl.Substring(gachaUrl.IndexOf('?')).Replace("#/log", "");
+            gachaUrl = osMatch.Groups[1].Value;
+            var queryIndex = gachaUrl.IndexOf('?');
+            if (queryIndex < 0)
+            {
+                continue;
+            }
+            var auth = gachaUrl[queryIndex..].Replace("#/log", "");
             gachaUrl = API_PREFIX_YS_OS + auth;
             if (!string.IsNullOrWhiteSpace(lang))
             {
@@ -118,7 +126,7 @@ public class GenshinBeyondGachaClient
             }
             return gachaUrl;
         }
-        match = Regex.Match(gachaUrl, @"(https://public-operation-hk4e[!-z]+)");
+        var match = Regex.Match(gachaUrl, @"(https://public-operation-hk4e[!-z]+)");
         if (match.Success)
         {
             gachaUrl = match.Groups[1].Value;
@@ -161,10 +169,13 @@ public class GenshinBeyondGachaClient
 
     public static string? GetGachaUrlFromWebCache(GameBiz gameBiz, string? installPath = null)
     {
-        var file = GetGachaCacheFilePath(gameBiz, installPath);
-        if (File.Exists(file))
+        foreach (var file in GetGachaCacheFilePaths(gameBiz, installPath))
         {
-            return FindMatchStringFromFile(file, GetGachaUrlPattern(gameBiz));
+            var url = FindMatchStringFromFile(file, GetGachaUrlPattern(gameBiz));
+            if (!string.IsNullOrWhiteSpace(url))
+            {
+                return url;
+            }
         }
         return null;
     }
@@ -192,24 +203,50 @@ public class GenshinBeyondGachaClient
             GameBiz.hk4e_global => Path.Join(installPath, WEB_CACHE_PATH_YS_OS),
             _ => throw new ArgumentOutOfRangeException($"Unknown region {gameBiz}"),
         };
-        DateTime lastWriteTime = DateTime.MinValue;
-        if (File.Exists(file))
+        return GetGachaCacheFilePaths(gameBiz, installPath).FirstOrDefault() ?? file;
+    }
+
+
+
+    private static List<string> GetGachaCacheFilePaths(GameBiz gameBiz, string? installPath)
+    {
+        string defaultFile = gameBiz.Value switch
         {
-            lastWriteTime = File.GetLastWriteTime(file);
-        }
+            GameBiz.hk4e_cn or GameBiz.hk4e_bilibili => Path.Join(installPath, WEB_CACHE_PATH_YS_CN),
+            GameBiz.hk4e_global => Path.Join(installPath, WEB_CACHE_PATH_YS_OS),
+            _ => throw new ArgumentOutOfRangeException($"Unknown region {gameBiz}"),
+        };
+        var candidates = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+        AddGachaCacheCandidate(candidates, defaultFile);
+
         string webCache = GetWebCachesFolderPath(gameBiz, installPath);
         if (Directory.Exists(webCache))
         {
-            foreach (var item in Directory.GetDirectories(webCache))
+            try
             {
-                string target = Path.Join(item, @"Cache\Cache_Data\data_2");
-                if (File.Exists(target) && File.GetLastWriteTime(target) > lastWriteTime)
+                foreach (var file in Directory.EnumerateFiles(webCache, "data_*", SearchOption.AllDirectories))
                 {
-                    file = target;
+                    if (file.Contains($"{Path.DirectorySeparatorChar}Cache_Data{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+                    {
+                        AddGachaCacheCandidate(candidates, file);
+                    }
                 }
             }
+            catch
+            {
+            }
         }
-        return file;
+        return candidates.OrderByDescending(x => x.Value).Select(x => x.Key).ToList();
+    }
+
+
+
+    private static void AddGachaCacheCandidate(Dictionary<string, DateTime> candidates, string? file)
+    {
+        if (!string.IsNullOrWhiteSpace(file) && File.Exists(file))
+        {
+            candidates[file] = File.GetLastWriteTime(file);
+        }
     }
 
 
@@ -232,14 +269,31 @@ public class GenshinBeyondGachaClient
         var ms = new MemoryStream();
         fs.CopyTo(ms);
         var span = ms.ToArray().AsSpan();
-        var index = span.LastIndexOf(prefix);
-        if (index >= 0)
+        var searchSpan = span;
+        while (true)
         {
-            var length = span[index..].IndexOfAny("\0\""u8);
-            return Encoding.UTF8.GetString(span.Slice(index, length));
+            var index = searchSpan.LastIndexOf(prefix);
+            if (index < 0)
+            {
+                return null;
+            }
+            var urlSpan = searchSpan[index..];
+            var length = urlSpan.IndexOfAny("\0\""u8);
+            if (length < 0)
+            {
+                length = urlSpan.Length;
+            }
+            urlSpan = urlSpan[..length];
+            if (urlSpan.IndexOf("?"u8) >= 0 && urlSpan.IndexOf("authkey"u8) >= 0)
+            {
+                return Encoding.UTF8.GetString(urlSpan);
+            }
+            if (index == 0)
+            {
+                return null;
+            }
+            searchSpan = searchSpan[..index];
         }
-
-        return null;
     }
 
 

@@ -1,5 +1,7 @@
 using System.Net.Http.Json;
 using System.Globalization;
+using Microsoft.Win32;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -28,10 +30,6 @@ public class WutheringWavesGachaClient : GachaLogClient
     {
         foreach (var file in GetCandidateLogFiles(installPath))
         {
-            if (!File.Exists(file))
-            {
-                continue;
-            }
             var text = ReadLogText(file, decrypt: file.EndsWith("Client.log", StringComparison.OrdinalIgnoreCase));
             var url = FindGachaUrl(text);
             if (!string.IsNullOrWhiteSpace(url))
@@ -349,8 +347,202 @@ public class WutheringWavesGachaClient : GachaLogClient
 
     private static IEnumerable<string> GetCandidateLogFiles(string installPath)
     {
-        yield return Path.Join(installPath, @"Client\Saved\Logs\Client.log");
-        yield return Path.Join(installPath, @"Client\Binaries\Win64\ThirdParty\KrPcSdk_Global\KRSDKRes\KRSDKWebView\debug.log");
+        var candidates = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+        foreach (var path in GetCandidateInstallPaths(installPath))
+        {
+            AddLogCandidate(candidates, Path.Join(path, @"Client\Saved\Logs\Client.log"));
+            AddLogCandidate(candidates, Path.Join(path, @"Client\Binaries\Win64\ThirdParty\KrPcSdk_Global\KRSDKRes\KRSDKWebView\debug.log"));
+            AddLogCandidate(candidates, Path.Join(path, @"Wuthering Waves Game\Client\Saved\Logs\Client.log"));
+            AddLogCandidate(candidates, Path.Join(path, @"Wuthering Waves Game\Client\Binaries\Win64\ThirdParty\KrPcSdk_Global\KRSDKRes\KRSDKWebView\debug.log"));
+
+            if (Directory.Exists(path))
+            {
+                try
+                {
+                    foreach (var file in Directory.EnumerateFiles(path, "Client.log", SearchOption.AllDirectories))
+                    {
+                        if (file.Contains(@"\Saved\Logs\", StringComparison.OrdinalIgnoreCase))
+                        {
+                            AddLogCandidate(candidates, file);
+                        }
+                    }
+                    foreach (var file in Directory.EnumerateFiles(path, "debug.log", SearchOption.AllDirectories))
+                    {
+                        if (file.Contains(@"\KRSDKWebView\", StringComparison.OrdinalIgnoreCase))
+                        {
+                            AddLogCandidate(candidates, file);
+                        }
+                    }
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        return candidates.OrderByDescending(x => x.Value).Select(x => x.Key);
+    }
+
+
+    private static IEnumerable<string> GetCandidateInstallPaths(string installPath)
+    {
+        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        AddInstallPath(paths, installPath);
+        AddInstallPath(paths, Path.Join(installPath, "Wuthering Waves Game"));
+
+        var parent = Directory.Exists(installPath) ? Directory.GetParent(installPath)?.FullName : null;
+        AddInstallPath(paths, parent);
+        AddInstallPath(paths, Path.Join(parent, "Wuthering Waves Game"));
+
+        if (OperatingSystem.IsWindows())
+        {
+            foreach (var path in GetInstallPathsFromMuiCache())
+            {
+                AddInstallPath(paths, path);
+            }
+            foreach (var path in GetInstallPathsFromFirewallRules())
+            {
+                AddInstallPath(paths, path);
+            }
+            foreach (var path in GetInstallPathsFromUninstallRegistry())
+            {
+                AddInstallPath(paths, path);
+            }
+        }
+        foreach (var path in GetCommonInstallPaths())
+        {
+            AddInstallPath(paths, path);
+        }
+        return paths;
+    }
+
+
+    private static void AddInstallPath(HashSet<string> paths, string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || path.Contains("OneDrive", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+        try
+        {
+            path = Path.GetFullPath(path);
+            paths.Add(path);
+            if (path.Contains(@"\Client\", StringComparison.OrdinalIgnoreCase))
+            {
+                paths.Add(Regex.Split(path, @"\\Client\\", RegexOptions.IgnoreCase)[0]);
+            }
+        }
+        catch
+        {
+        }
+    }
+
+
+    [SupportedOSPlatform("windows")]
+    private static IEnumerable<string> GetInstallPathsFromMuiCache()
+    {
+        const string muiCache = @"Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache";
+        using var key = Registry.CurrentUser.OpenSubKey(muiCache);
+        if (key is null)
+        {
+            yield break;
+        }
+        foreach (var name in key.GetValueNames())
+        {
+            var value = key.GetValue(name)?.ToString();
+            if (value?.Contains("wuthering", StringComparison.OrdinalIgnoreCase) is true
+                && name.Contains("client-win64-shipping.exe", StringComparison.OrdinalIgnoreCase)
+                && name.Contains(@"\Client\", StringComparison.OrdinalIgnoreCase))
+            {
+                yield return Regex.Split(name, @"\\Client\\", RegexOptions.IgnoreCase)[0];
+            }
+        }
+    }
+
+
+    [SupportedOSPlatform("windows")]
+    private static IEnumerable<string> GetInstallPathsFromFirewallRules()
+    {
+        const string firewallRules = @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules";
+        using var key = Registry.LocalMachine.OpenSubKey(firewallRules);
+        if (key is null)
+        {
+            yield break;
+        }
+        foreach (var name in key.GetValueNames())
+        {
+            var value = key.GetValue(name)?.ToString();
+            if (value?.Contains("client-win64-shipping", StringComparison.OrdinalIgnoreCase) is true
+                && value.Contains("wuthering", StringComparison.OrdinalIgnoreCase)
+                && value.Contains("App=", StringComparison.OrdinalIgnoreCase))
+            {
+                var appPath = Regex.Match(value, @"App=([^|]+)", RegexOptions.IgnoreCase).Groups[1].Value;
+                if (!string.IsNullOrWhiteSpace(appPath) && appPath.Contains(@"\Client\", StringComparison.OrdinalIgnoreCase))
+                {
+                    yield return Regex.Split(appPath, @"\\Client\\", RegexOptions.IgnoreCase)[0];
+                }
+            }
+        }
+    }
+
+
+    [SupportedOSPlatform("windows")]
+    private static IEnumerable<string> GetInstallPathsFromUninstallRegistry()
+    {
+        foreach (var root in new[] { Registry.LocalMachine, Registry.CurrentUser })
+        {
+            foreach (var subKeyName in new[] { @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall" })
+            {
+                using var key = root.OpenSubKey(subKeyName);
+                if (key is null)
+                {
+                    continue;
+                }
+                foreach (var name in key.GetSubKeyNames())
+                {
+                    using var appKey = key.OpenSubKey(name);
+                    var displayName = appKey?.GetValue("DisplayName")?.ToString();
+                    if (displayName?.Contains("wuthering", StringComparison.OrdinalIgnoreCase) is true)
+                    {
+                        yield return appKey?.GetValue("InstallPath")?.ToString() ?? "";
+                        yield return appKey?.GetValue("InstallLocation")?.ToString() ?? "";
+                    }
+                }
+            }
+        }
+    }
+
+
+    private static IEnumerable<string> GetCommonInstallPaths()
+    {
+        foreach (var drive in DriveInfo.GetDrives().Where(x => x.IsReady).Select(x => x.RootDirectory.FullName))
+        {
+            yield return Path.Join(drive, @"SteamLibrary\steamapps\common\Wuthering Waves");
+            yield return Path.Join(drive, @"SteamLibrary\steamapps\common\Wuthering Waves\Wuthering Waves Game");
+            yield return Path.Join(drive, @"Program Files (x86)\Steam\steamapps\common\Wuthering Waves");
+            yield return Path.Join(drive, @"Program Files (x86)\Steam\steamapps\common\Wuthering Waves\Wuthering Waves Game");
+            yield return Path.Join(drive, @"Program Files\Steam\steamapps\common\Wuthering Waves");
+            yield return Path.Join(drive, @"Program Files\Steam\steamapps\common\Wuthering Waves\Wuthering Waves Game");
+            yield return Path.Join(drive, @"Program Files\Epic Games\WutheringWavesj3oFh");
+            yield return Path.Join(drive, @"Program Files\Epic Games\WutheringWavesj3oFh\Wuthering Waves Game");
+            yield return Path.Join(drive, @"Program Files (x86)\Epic Games\WutheringWavesj3oFh");
+            yield return Path.Join(drive, @"Program Files (x86)\Epic Games\WutheringWavesj3oFh\Wuthering Waves Game");
+            yield return Path.Join(drive, "Wuthering Waves");
+            yield return Path.Join(drive, @"Wuthering Waves\Wuthering Waves Game");
+            yield return Path.Join(drive, @"Wuthering Waves Game");
+            yield return Path.Join(drive, @"Games\Wuthering Waves");
+            yield return Path.Join(drive, @"Games\Wuthering Waves\Wuthering Waves Game");
+            yield return Path.Join(drive, @"Games\Wuthering Waves Game");
+        }
+    }
+
+
+    private static void AddLogCandidate(Dictionary<string, DateTime> candidates, string? file)
+    {
+        if (!string.IsNullOrWhiteSpace(file) && File.Exists(file))
+        {
+            candidates[file] = File.GetLastWriteTime(file);
+        }
     }
 
 

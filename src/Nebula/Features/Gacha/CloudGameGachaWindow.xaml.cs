@@ -13,9 +13,9 @@ public sealed partial class CloudGameGachaWindow : WindowEx
 {
 
 
-    private const string SPAN_WEB_PREFIX_YS_CN = "https://webstatic.mihoyo.com/hk4e/event/e20190909gacha-v3/index.html";
+    private const string SPAN_WEB_PREFIX_YS_CN = "https://webstatic.mihoyo.com/hk4e/event/e20190909gacha";
 
-    private const string SPAN_WEB_PREFIX_SR_CN = "https://webstatic.mihoyo.com/hkrpg/event/e20211215gacha-v2/index.html";
+    private const string SPAN_WEB_PREFIX_SR_CN = "https://webstatic.mihoyo.com/hkrpg/event/e20211215gacha";
 
 
 
@@ -111,11 +111,30 @@ public sealed partial class CloudGameGachaWindow : WindowEx
         if (prefix is not null)
         {
             ReadOnlySpan<char> span = html.AsSpan();
-            int index = span.LastIndexOf(prefix);
-            if (index >= 0)
+            var searchSpan = span;
+            while (true)
             {
-                var length = span[index..].IndexOfAny("\"");
-                return new(span.Slice(index, length));
+                int index = searchSpan.LastIndexOf(prefix);
+                if (index < 0)
+                {
+                    return null;
+                }
+                var urlSpan = searchSpan[index..];
+                var length = urlSpan.IndexOfAny("\"");
+                if (length < 0)
+                {
+                    length = urlSpan.Length;
+                }
+                urlSpan = urlSpan[..length];
+                if (urlSpan.IndexOf('?') >= 0 && urlSpan.IndexOf("authkey", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return new(urlSpan);
+                }
+                if (index == 0)
+                {
+                    return null;
+                }
+                searchSpan = searchSpan[..index];
             }
         }
         return null;

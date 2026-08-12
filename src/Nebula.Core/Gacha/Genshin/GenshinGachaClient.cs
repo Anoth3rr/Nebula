@@ -20,11 +20,15 @@ public class GenshinGachaClient : GachaLogClient
 
     protected override string GetGachaUrlPrefix(string gachaUrl, string? lang = null)
     {
-        var match = Regex.Match(gachaUrl, @"(https://webstatic\.mihoyo\.com[!-z]+)");
-        if (match.Success)
+        foreach (Match webMatch in Regex.Matches(gachaUrl, @"(https://webstatic\.mihoyo\.com[!-z]+)"))
         {
-            gachaUrl = match.Groups[1].Value;
-            var auth = gachaUrl.Substring(gachaUrl.IndexOf('?')).Replace("#/log", "");
+            gachaUrl = webMatch.Groups[1].Value;
+            var queryIndex = gachaUrl.IndexOf('?');
+            if (queryIndex < 0)
+            {
+                continue;
+            }
+            var auth = gachaUrl[queryIndex..].Replace("#/log", "");
             gachaUrl = API_PREFIX_YS_CN + auth;
             if (!string.IsNullOrWhiteSpace(lang))
             {
@@ -32,11 +36,15 @@ public class GenshinGachaClient : GachaLogClient
             }
             return gachaUrl;
         }
-        match = Regex.Match(gachaUrl, @"(https://gs\.hoyoverse\.com[!-z]+)");
-        if (match.Success)
+        foreach (Match osMatch in Regex.Matches(gachaUrl, @"(https://gs\.hoyoverse\.com[!-z]+)"))
         {
-            gachaUrl = match.Groups[1].Value;
-            var auth = gachaUrl.Substring(gachaUrl.IndexOf('?')).Replace("#/log", "");
+            gachaUrl = osMatch.Groups[1].Value;
+            var queryIndex = gachaUrl.IndexOf('?');
+            if (queryIndex < 0)
+            {
+                continue;
+            }
+            var auth = gachaUrl[queryIndex..].Replace("#/log", "");
             gachaUrl = API_PREFIX_YS_OS + auth;
             if (!string.IsNullOrWhiteSpace(lang))
             {
@@ -44,7 +52,7 @@ public class GenshinGachaClient : GachaLogClient
             }
             return gachaUrl;
         }
-        match = Regex.Match(gachaUrl, @"(https://public-operation-hk4e[!-z]+)");
+        var match = Regex.Match(gachaUrl, @"(https://public-operation-hk4e[!-z]+)");
         if (match.Success)
         {
             gachaUrl = match.Groups[1].Value;
