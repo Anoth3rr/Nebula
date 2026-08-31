@@ -232,6 +232,10 @@ Assets/
 !src/Nebula/Assets/Image/icon_endfield.ico
 !src/Nebula/Assets/Image/icon_endfield.jpg
 !src/Nebula/Assets/Image/icon_wutheringwaves.ico
+
+# Standalone progression dashboard assets (including cached Wiki icons)
+!progression-dashboard/assets/
+!progression-dashboard/assets/**
 AppPackages/
 BundleArtifacts/
 Package.StoreAssociation.xml

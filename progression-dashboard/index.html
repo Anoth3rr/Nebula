@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101216" />
+    <link rel="icon" href="assets/nebula.ico" />
+    <title>Nebula / 练度工作台</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Nebula 练度工作台">
+          <span class="brand-mark">✦</span>
+          <span class="brand-name">NEBULA</span>
+          <span class="brand-divider">/</span>
+          <span class="brand-product">练度工作台</span>
+        </a>
+        <div class="topbar-status">
+          <span class="status-dot"></span>
+          <span id="syncStatus">本地数据 · 已同步</span>
+        </div>
+        <div class="topbar-actions">
+          <input id="importInput" type="file" accept="application/json,.json" hidden />
+          <button class="icon-button" id="importButton" type="button" title="导入数据" aria-label="导入数据">⇧</button>
+          <button class="icon-button" id="exportButton" type="button" title="导出数据" aria-label="导出数据">⇩</button>
+          <button class="profile-button" type="button" title="当前账号">MS</button>
+        </div>
+      </header>
+
+      <div class="app-layout">
+        <aside class="sidebar" aria-label="主导航">
+          <div class="sidebar-label">WORKSPACE</div>
+          <nav class="primary-nav" id="primaryNav">
+            <button class="nav-item is-active" type="button" data-view="overview">
+              <span class="nav-icon">◈</span>
+              <span>练度总览</span>
+              <span class="nav-count" id="navCharacterCount">26</span>
+            </button>
+            <button class="nav-item" type="button" data-view="teams">
+              <span class="nav-icon">▦</span>
+              <span>配队方案</span>
+              <span class="nav-count" id="navTeamCount">3</span>
+            </button>
+            <button class="nav-item" type="button" data-view="inventory">
+              <span class="nav-icon">◇</span>
+              <span>装备仓库</span>
+              <span class="nav-count" id="navInventoryCount">0</span>
+            </button>
+          </nav>
+
+          <div class="sidebar-section">
+            <div class="sidebar-label">QUICK FILTER</div>
+            <button class="side-filter" type="button" data-filter="maxed"><span class="filter-mark mark-green"></span>已毕业</button>
+            <button class="side-filter" type="button" data-filter="building"><span class="filter-mark mark-amber"></span>培养中</button>
+            <button class="side-filter" type="button" data-filter="todo"><span class="filter-mark mark-red"></span>待补强</button>
+          </div>
+
+          <div class="sidebar-spacer"></div>
+          <div class="sidebar-footnote">
+            <span class="footnote-mark">◌</span>
+            <div>
+              <strong>离线优先</strong>
+              <span>数据只保存在本机</span>
+            </div>
+          </div>
+        </aside>
+
+        <main class="main-content">
+          <section class="hero" id="hero">
+            <div class="hero-backdrop" id="heroBackdrop"></div>
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+              <div class="hero-copy">
+                <p class="eyebrow light">PROGRESSION / 练度档案</p>
+                <h1>把每一次升级，变成可见的进度。</h1>
+                <p class="hero-description">多游戏角色、装备与配队，统一放进一张清晰的作战面板。</p>
+              </div>
+              <div class="hero-account">
+                <span class="account-kicker">当前档案</span>
+                <strong>MeltySnow</strong>
+                <span id="heroUpdatedAt">最后更新 · 今天 21:40</span>
+              </div>
+            </div>
+            <div class="game-switcher" id="gameSwitcher" role="tablist" aria-label="选择游戏"></div>
+          </section>
+
+          <div class="content-wrap">
+            <section class="view" id="overviewView" aria-labelledby="overviewTitle">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">CURRENT SNAPSHOT</p>
+                  <h2 id="overviewTitle">角色练度</h2>
+                </div>
+                <div class="heading-actions">
+                  <span class="last-saved" id="lastSaved">自动保存已开启</span>
+                  <button class="button button-quiet" type="button" id="resetSampleButton"><span>↺</span>恢复示例</button>
+                </div>
+              </div>
+
+              <div class="stats-grid" id="statsGrid"></div>
+
+              <div class="dashboard-grid">
+                <section class="surface roster-surface" aria-labelledby="rosterTitle">
+                  <div class="surface-header roster-header">
+                    <div>
+                      <p class="eyebrow">ROSTER</p>
+                      <h3 id="rosterTitle">角色列表</h3>
+                    </div>
+                    <div class="view-toggle" role="group" aria-label="角色列表视图">
+                      <button class="toggle-button is-selected" type="button" data-layout="list" title="列表视图">☷</button>
+                      <button class="toggle-button" type="button" data-layout="compact" title="紧凑视图">⊞</button>
+                    </div>
+                  </div>
+                  <div class="roster-toolbar">
+                    <label class="search-field">
+                      <span aria-hidden="true">⌕</span>
+                      <input id="searchInput" type="search" placeholder="搜索角色、武器或套装" autocomplete="off" />
+                    </label>
+                    <div class="toolbar-selects">
+                      <label class="select-wrap">
+                        <span class="sr-only">稀有度</span>
+                        <select id="rarityFilter">
+                          <option value="all">全部星级</option>
+                          <option value="5">五星</option>
+                          <option value="4">四星</option>
+                        </select>
+                      </label>
+                      <label class="select-wrap">
+                        <span class="sr-only">练度状态</span>
+                        <select id="statusFilter">
+                          <option value="all">全部状态</option>
+                          <option value="maxed">已毕业</option>
+                          <option value="building">培养中</option>
+                          <option value="todo">待补强</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="roster-meta">
+                    <span id="rosterResultCount">显示 0 位角色</span>
+                    <button class="sort-button" type="button" id="sortButton" data-sort="readiness">按完成度 <span>↕</span></button>
+                  </div>
+                  <div class="roster-list" id="rosterList"></div>
+                  <div class="empty-state" id="rosterEmpty" hidden>
+                    <span class="empty-icon">⌕</span>
+                    <strong>没有匹配的角色</strong>
+                    <span>调整筛选条件后再试</span>
+                  </div>
+                </section>
+
+                <aside class="surface detail-surface" id="detailSurface" aria-labelledby="detailTitle">
+                  <div class="surface-header">
+                    <div>
+                      <p class="eyebrow">SELECTED OPERATIVE</p>
+                      <h3 id="detailTitle">角色详情</h3>
+                    </div>
+                    <button class="icon-button subtle" type="button" id="closeDetailButton" title="收起详情" aria-label="收起详情">×</button>
+                  </div>
+                  <div id="detailContent"></div>
+                </aside>
+              </div>
+            </section>
+
+            <section class="view" id="teamsView" hidden aria-labelledby="teamsTitle">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">SQUAD BUILDER</p>
+                  <h2 id="teamsTitle">配队方案</h2>
+                </div>
+                <div class="heading-actions">
+                  <button class="button button-primary" type="button" id="newTeamButton"><span>＋</span>新建配队</button>
+                </div>
+              </div>
+              <div class="team-layout">
+                <section class="surface team-library" aria-labelledby="teamLibraryTitle">
+                  <div class="surface-header">
+                    <div>
+                      <p class="eyebrow">SAVED SQUADS</p>
+                      <h3 id="teamLibraryTitle">已保存方案</h3>
+                    </div>
+                    <span class="library-count" id="teamLibraryCount">0 组</span>
+                  </div>
+                  <div class="team-list" id="teamList"></div>
+                  <div class="empty-state" id="teamEmpty" hidden>
+                    <span class="empty-icon">▦</span>
+                    <strong>还没有配队</strong>
+                    <span>创建第一组作战方案</span>
+                  </div>
+                </section>
+                <section class="surface team-detail-surface" aria-labelledby="teamDetailTitle">
+                  <div id="teamDetailContent"></div>
+                </section>
+              </div>
+            </section>
+
+            <section class="view" id="inventoryView" hidden aria-labelledby="inventoryTitle">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">LOADOUT INVENTORY</p>
+                  <h2 id="inventoryTitle">装备仓库</h2>
+                </div>
+                <div class="heading-actions">
+                  <button class="button button-primary" type="button" id="newInventoryButton"><span>＋</span>加入仓库</button>
+                </div>
+              </div>
+              <div class="inventory-layout">
+                <section class="surface inventory-library" aria-labelledby="inventoryLibraryTitle">
+                  <div class="surface-header">
+                    <div>
+                      <p class="eyebrow">OWNED LOADOUTS</p>
+                      <h3 id="inventoryLibraryTitle">已登记装备</h3>
+                    </div>
+                    <span class="library-count" id="inventoryLibraryCount">0 件</span>
+                  </div>
+                  <div class="inventory-toolbar">
+                    <label class="search-field">
+                      <span aria-hidden="true">⌕</span>
+                      <input id="inventorySearch" type="search" placeholder="搜索装备或持有角色" autocomplete="off" />
+                    </label>
+                    <button class="sort-button" type="button" id="inventorySortButton">按名称 <span>↕</span></button>
+                  </div>
+                  <div class="inventory-kind-tabs" id="inventoryKindTabs" role="tablist" aria-label="装备类型"></div>
+                  <div class="inventory-meta"><span id="inventoryResultCount">显示 0 件装备</span><a class="wiki-source-chip" id="inventorySourceLink" href="https://wiki.biligame.com/" target="_blank" rel="noreferrer">Wiki 图标 ↗</a></div>
+                  <div class="inventory-list" id="inventoryList"></div>
+                  <div class="empty-state" id="inventoryEmpty" hidden>
+                    <span class="empty-icon">◇</span>
+                    <strong>仓库还是空的</strong>
+                    <span>加入第一件装备</span>
+                  </div>
+                </section>
+                <aside class="surface inventory-detail-surface" aria-labelledby="inventoryDetailTitle">
+                  <div class="surface-header">
+                    <div>
+                      <p class="eyebrow">ITEM INSPECTOR</p>
+                      <h3 id="inventoryDetailTitle">装备详情</h3>
+                    </div>
+                  </div>
+                  <div id="inventoryDetailContent"></div>
+                </aside>
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <dialog class="modal" id="teamDialog">
+      <form method="dialog" id="teamForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">NEW SQUAD</p>
+            <h3>创建配队</h3>
+          </div>
+          <button class="icon-button subtle" value="cancel" type="submit" title="关闭" aria-label="关闭">×</button>
+        </div>
+        <label class="form-field">
+          <span>方案名称</span>
+          <input id="teamNameInput" name="teamName" required maxlength="24" placeholder="例如：深境螺旋 · 下半" />
+        </label>
+        <label class="form-field">
+          <span>备注</span>
+          <input id="teamNoteInput" name="teamNote" maxlength="48" placeholder="队伍定位或循环备注" />
+        </label>
+        <div class="slot-grid" id="teamSlotGrid"></div>
+        <div class="modal-actions">
+          <button class="button button-quiet" value="cancel" type="submit">取消</button>
+          <button class="button button-primary" id="saveTeamButton" value="default" type="submit">保存配队</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="inventoryDialog">
+      <form method="dialog" id="inventoryForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">NEW INVENTORY ITEM</p>
+            <h3>加入仓库</h3>
+          </div>
+          <button class="icon-button subtle" value="cancel" type="submit" title="关闭" aria-label="关闭">×</button>
+        </div>
+        <label class="form-field">
+          <span>条目名称</span>
+          <input id="inventoryNameInput" name="inventoryName" required maxlength="36" placeholder="例如：天空之刃" />
+        </label>
+        <div class="form-grid">
+          <label class="form-field">
+            <span>类型</span>
+            <select id="inventoryKindInput" name="inventoryKind"></select>
+          </label>
+          <label class="form-field">
+            <span>稀有度</span>
+            <input id="inventoryRarityInput" name="inventoryRarity" type="number" min="1" max="6" value="5" />
+          </label>
+          <label class="form-field">
+            <span>等级（可选）</span>
+            <input id="inventoryLevelInput" name="inventoryLevel" type="number" min="1" max="100" placeholder="未强化" />
+          </label>
+          <label class="form-field">
+            <span>精炼 / 阶段</span>
+            <input id="inventoryRefinementInput" name="inventoryRefinement" type="number" min="1" max="5" value="1" />
+          </label>
+          <label class="form-field">
+            <span>评分（可选）</span>
+            <input id="inventoryScoreInput" name="inventoryScore" type="number" min="0" step="0.1" placeholder="未评分" />
+          </label>
+          <label class="form-field">
+            <span>Wiki 文件名（可选）</span>
+            <input id="inventoryWikiFileInput" name="inventoryWikiFile" maxlength="80" placeholder="例如：霜辰.png" />
+          </label>
+        </div>
+        <label class="form-field">
+          <span>备注</span>
+          <input id="inventoryNoteInput" name="inventoryNote" maxlength="60" placeholder="来源、强化目标或套装说明" />
+        </label>
+        <div class="modal-actions">
+          <button class="button button-quiet" value="cancel" type="submit">取消</button>
+          <button class="button button-primary" id="saveInventoryButton" value="default" type="submit">加入仓库</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
