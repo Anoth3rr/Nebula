@@ -493,6 +493,8 @@ const state = {
   sort: "readiness",
   layout: "list",
   toastTimer: null,
+  editingRoleId: null,
+  editingTeamId: null,
 };
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -548,10 +550,14 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function talentMaxForGame(gameKey = state.activeGame) {
+  return gameKey === "endfield" ? 12 : gameKey === "wuthering" ? 5 : MAX_TALENT;
+}
+
 function roleReadiness(role) {
   const game = meta();
   const levelRatio = clamp((Number(role.level) || 0) / (Number(role.maxLevel) || game.levelMax), 0, 1);
-  const talentMax = state.activeGame === "endfield" ? 12 : state.activeGame === "wuthering" ? 5 : MAX_TALENT;
+  const talentMax = talentMaxForGame();
   const talentRatio = role.talents?.length ? clamp(average(role.talents) / talentMax, 0, 1) : levelRatio * 0.68;
   const scoreRatio = role.gear?.score == null ? levelRatio * 0.72 : clamp(Number(role.gear.score) / game.scoreTarget, 0.18, 1);
   const weaponRatio = role.weapon?.level ? clamp(Number(role.weapon.level) / (Number(role.weapon.maxLevel) || game.levelMax), 0, 1) : levelRatio * 0.65;
@@ -1671,13 +1677,15 @@ function renderDetail() {
   const status = roleStatus(role);
   const readiness = roleReadiness(role);
   const duplicate = Number(role.duplicate) || 0;
-  const talentMax = state.activeGame === "endfield" ? 12 : state.activeGame === "wuthering" ? 5 : MAX_TALENT;
+  const talentMax = talentMaxForGame();
+  const detailSubline = [stars(role.rarity), role.element, role.role].filter(Boolean).join(" · ");
   const talentRows = (role.talents || []).length
     ? role.talents.map((value, index) => `<div class="metric-line"><span>${escapeHtml(game.talentLabels[index] || `技能 ${index + 1}`)}</span><strong>${escapeHtml(value)}</strong></div><div class="progress-track"><div class="progress-fill" style="--bar-color:${safeColor(game.accent)};width:${Math.round((Number(value) / talentMax) * 100)}%"></div></div>`).join("")
     : `<div class="role-subline">技能数据尚未录入</div>`;
   detail.innerHTML = `<div class="detail-hero">
       ${roleAvatar(role)}
-      <div><h4 class="detail-name">${escapeHtml(role.name)}</h4><div class="detail-subline">${stars(role.rarity)} · ${escapeHtml(role.element)} · ${escapeHtml(role.role)}</div><div class="detail-status" style="--status-color:${status.color}">${escapeHtml(status.label)} · ${readiness}%</div></div>
+      <div class="detail-hero-copy"><h4 class="detail-name">${escapeHtml(role.name)}</h4><div class="detail-subline">${escapeHtml(detailSubline)}</div><div class="detail-status" style="--status-color:${status.color}">${escapeHtml(status.label)} · ${readiness}%</div></div>
+      <div class="detail-hero-actions"><button class="icon-button subtle" type="button" data-edit-role="${escapeHtml(role.id)}" title="编辑角色详情" aria-label="编辑角色详情">✎</button></div>
     </div>
     <div class="detail-section"><div class="detail-section-title"><span>核心指标</span><span>${escapeHtml(game.name)}</span></div><div class="detail-stats">
       ${detailStat("等级", role.level || 0, ` / ${role.maxLevel || game.levelMax}`)}
@@ -1734,7 +1742,7 @@ function renderTeamDetail() {
   const memberRoles = (team.members || []).map(findRole).filter(Boolean);
   const score = teamReadiness(team);
   const memberCards = memberRoles.map((role) => `<article class="team-member" data-open-role="${escapeHtml(role.id)}" tabindex="0">${roleAvatar(role)}<div class="team-member-name">${escapeHtml(role.name)}</div><div class="team-member-meta"><span>${escapeHtml(formatLevel(role))}</span><span style="color:${readinessColor(roleReadiness(role))}">${roleReadiness(role)}%</span></div></article>`).join("");
-  container.innerHTML = `<div class="team-detail-content"><div class="team-detail-header"><div><p class="eyebrow">ACTIVE SQUAD</p><h3>${escapeHtml(team.name)}</h3><p>${escapeHtml(team.note || "未添加备注")}</p></div><div class="team-detail-actions"><button class="icon-button subtle" type="button" data-delete-team="${escapeHtml(team.id)}" title="删除配队" aria-label="删除配队">⌫</button></div></div>
+  container.innerHTML = `<div class="team-detail-content"><div class="team-detail-header"><div><p class="eyebrow">ACTIVE SQUAD</p><h3>${escapeHtml(team.name)}</h3><p>${escapeHtml(team.note || "未添加备注")}</p></div><div class="team-detail-actions"><button class="icon-button subtle" type="button" data-edit-team="${escapeHtml(team.id)}" title="编辑配队详情" aria-label="编辑配队详情">✎</button><button class="icon-button subtle" type="button" data-delete-team="${escapeHtml(team.id)}" title="删除配队" aria-label="删除配队">⌫</button></div></div>
     <div class="team-score-block"><strong>${score}%</strong><div class="team-score-copy"><span>队伍完成度</span><span>${memberRoles.length} 位角色 · ${escapeHtml(meta().name)}</span></div></div>
     <div class="team-members">${memberCards || `<div class="empty-state"><strong>尚未选择角色</strong></div>`}</div>
     <div class="synergy-row">${(team.tags || []).map((tag) => `<span class="synergy-tag">${escapeHtml(tag)}</span>`).join("")}</div></div>`;
@@ -1879,12 +1887,102 @@ function setGame(gameKey) {
   renderAll();
 }
 
+function roleEditTalentMarkup(role) {
+  const game = meta();
+  const talentMax = talentMaxForGame();
+  const values = Array.isArray(role?.talents) ? role.talents : [];
+  const count = Math.max(game.talentLabels.length, values.length);
+  return Array.from({ length: count }, (_, index) => {
+    const label = game.talentLabels[index] || `技能 ${index + 1}`;
+    const value = values[index] == null ? "" : values[index];
+    return `<label class="form-field"><span>${escapeHtml(label)}</span><input data-role-edit-talent="${index}" type="number" min="0" max="${talentMax}" step="1" value="${escapeHtml(value)}" /></label>`;
+  }).join("");
+}
+
+function openRoleEditDialog(roleId = state.selectedRoleId) {
+  const role = findRole(roleId);
+  const dialog = $("#roleEditDialog");
+  if (!role || !dialog) return;
+  state.editingRoleId = role.id;
+  const game = meta();
+  const talentMax = talentMaxForGame();
+  const maxLevel = Number(role.maxLevel) || game.levelMax;
+  $("#roleEditNameInput").value = role.name || "";
+  $("#roleEditRarityInput").value = Number(role.rarity) || 1;
+  $("#roleEditElementInput").value = role.element || "";
+  $("#roleEditRoleInput").value = role.role || "未分类";
+  $("#roleEditLevelInput").value = Number(role.level) || 1;
+  $("#roleEditLevelInput").max = "200";
+  $("#roleEditMaxLevelInput").value = maxLevel;
+  $("#roleEditDuplicateLabel").textContent = game.duplicateLabel;
+  $("#roleEditDuplicateInput").value = clamp(Number(role.duplicate) || 0, 0, 6);
+  $("#roleEditColorInput").value = /^#[0-9a-f]{6}$/i.test(String(role.color || "")) ? role.color : "#4a5265";
+  $("#roleEditTalentHint").textContent = `0-${talentMax} 级`;
+  $("#roleEditTalentGrid").innerHTML = roleEditTalentMarkup(role);
+  $("#roleEditNoteInput").value = role.note || "";
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", "");
+}
+
+function saveRoleFromDialog() {
+  const role = findRole(state.editingRoleId);
+  if (!role) {
+    showToast("未找到要编辑的角色");
+    return false;
+  }
+  const name = $("#roleEditNameInput").value.trim();
+  if (!name) {
+    showToast("请先填写角色名称");
+    return false;
+  }
+  const game = meta();
+  const readNumber = (selector, fallback) => {
+    const value = Number($(selector).value);
+    return Number.isFinite(value) ? value : fallback;
+  };
+  const maxLevel = clamp(Math.round(readNumber("#roleEditMaxLevelInput", Number(role.maxLevel) || game.levelMax)), 1, 200);
+  role.name = name;
+  role.rarity = clamp(Math.round(readNumber("#roleEditRarityInput", Number(role.rarity) || 1)), 1, 6);
+  role.element = $("#roleEditElementInput").value.trim();
+  role.role = $("#roleEditRoleInput").value.trim() || "未分类";
+  role.maxLevel = maxLevel;
+  role.level = clamp(Math.round(readNumber("#roleEditLevelInput", Number(role.level) || 1)), 1, maxLevel);
+  role.duplicate = clamp(Math.round(readNumber("#roleEditDuplicateInput", Number(role.duplicate) || 0)), 0, 6);
+  role.color = safeColor($("#roleEditColorInput").value, role.color || "#4a5265");
+  const talentInputs = $$('[data-role-edit-talent]', $("#roleEditTalentGrid"));
+  const talentValues = talentInputs.map((input) => input.value.trim());
+  role.talents = talentValues.every((value) => value === "")
+    ? []
+    : talentValues.map((value) => clamp(Math.round(Number(value) || 0), 0, talentMaxForGame()));
+  role.note = $("#roleEditNoteInput").value.trim();
+  state.selectedRoleId = role.id;
+  saveData("角色详情已保存");
+  renderAll();
+  $("#roleEditDialog").close();
+  showToast("角色详情已保存");
+  return true;
+}
+
+function renderTeamSlotGrid(selector, selectedMembers = []) {
+  const grid = $(selector);
+  if (!grid) return;
+  const roster = roles();
+  const selected = Array.isArray(selectedMembers) ? selectedMembers : [];
+  const selectedOnly = selected
+    .filter((id) => id && !roster.some((role) => role.id === id))
+    .map((id) => ({ id, name: `未知角色 (${id})` }));
+  const optionsRoles = [...roster, ...selectedOnly];
+  grid.innerHTML = Array.from({ length: Math.max(4, selected.length) }, (_, index) => {
+    const selectedId = selected[index] || "";
+    return `<label class="slot-field"><span>位置 ${index + 1}</span><select data-team-slot="${index}"><option value="">未选择</option>${optionsRoles.map((role) => `<option value="${escapeHtml(role.id)}" ${role.id === selectedId ? "selected" : ""}>${escapeHtml(role.name)}</option>`).join("")}</select></label>`;
+  }).join("");
+}
+
 function openTeamDialog() {
   const dialog = $("#teamDialog");
   $("#teamNameInput").value = "";
   $("#teamNoteInput").value = "";
-  const roster = roles();
-  $("#teamSlotGrid").innerHTML = Array.from({ length: 4 }, (_, index) => `<label class="slot-field"><span>位置 ${index + 1}</span><select data-team-slot="${index}"><option value="">未选择</option>${roster.map((role) => `<option value="${escapeHtml(role.id)}">${escapeHtml(role.name)}</option>`).join("")}</select></label>`).join("");
+  renderTeamSlotGrid("#teamSlotGrid");
   if (typeof dialog.showModal === "function") dialog.showModal();
   else dialog.setAttribute("open", "");
 }
@@ -1915,6 +2013,57 @@ function saveTeamFromDialog() {
   renderTeams();
   $("#teamDialog").close();
   showToast("配队已保存");
+  return true;
+}
+
+function openTeamEditDialog(teamId = state.selectedTeamId) {
+  const team = teams().find((item) => item.id === teamId);
+  const dialog = $("#teamEditDialog");
+  if (!team || !dialog) return;
+  state.editingTeamId = team.id;
+  $("#teamEditNameInput").value = team.name || "";
+  $("#teamEditNoteInput").value = team.note || "";
+  $("#teamEditTagsInput").value = Array.isArray(team.tags) ? team.tags.join(", ") : String(team.tags || "");
+  renderTeamSlotGrid("#teamEditSlotGrid", team.members || []);
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", "");
+}
+
+function parseTeamTags(value) {
+  return unique(String(value || "").replaceAll("，", ",").split(/[,\n]+/).map((tag) => tag.trim()).filter(Boolean));
+}
+
+function saveTeamFromEditDialog() {
+  const team = teams().find((item) => item.id === state.editingTeamId);
+  if (!team) {
+    showToast("未找到要编辑的配队");
+    return false;
+  }
+  const name = $("#teamEditNameInput").value.trim();
+  const members = $$('[data-team-slot]', $("#teamEditSlotGrid")).map((select) => select.value).filter(Boolean);
+  if (!name) {
+    showToast("请先填写方案名称");
+    return false;
+  }
+  if (members.length < 2) {
+    showToast("至少选择 2 位角色");
+    return false;
+  }
+  const uniqueMembers = [...new Set(members)];
+  if (uniqueMembers.length !== members.length) {
+    showToast("同一角色不能重复加入配队");
+    return false;
+  }
+  team.name = name;
+  team.note = $("#teamEditNoteInput").value.trim();
+  team.tags = parseTeamTags($("#teamEditTagsInput").value);
+  team.members = uniqueMembers;
+  state.selectedTeamId = team.id;
+  saveData("配队详情已保存");
+  renderStats();
+  renderTeams();
+  $("#teamEditDialog").close();
+  showToast("配队详情已保存");
   return true;
 }
 
@@ -2228,6 +2377,11 @@ function bindEvents() {
   }));
 
   $("#detailContent").addEventListener("click", (event) => {
+    const editButton = event.target.closest("[data-edit-role]");
+    if (editButton) {
+      openRoleEditDialog(editButton.dataset.editRole);
+      return;
+    }
     const button = event.target.closest("[data-adjust]");
     if (!button) return;
     adjustRole(button.dataset.adjust, Number(button.dataset.direction));
@@ -2356,6 +2510,11 @@ function bindEvents() {
       renderTeamDetail();
       return;
     }
+    const editButton = event.target.closest("[data-edit-team]");
+    if (editButton) {
+      openTeamEditDialog(editButton.dataset.editTeam);
+      return;
+    }
     const member = event.target.closest("[data-open-role]");
     if (member) {
       state.selectedRoleId = member.dataset.openRole;
@@ -2386,6 +2545,18 @@ function bindEvents() {
     if (event.submitter?.value === "default") {
       event.preventDefault();
       saveTeamFromDialog();
+    }
+  });
+  $("#roleEditForm").addEventListener("submit", (event) => {
+    if (!event.submitter || event.submitter.value === "default") {
+      event.preventDefault();
+      saveRoleFromDialog();
+    }
+  });
+  $("#teamEditForm").addEventListener("submit", (event) => {
+    if (!event.submitter || event.submitter.value === "default") {
+      event.preventDefault();
+      saveTeamFromEditDialog();
     }
   });
   $("#exportButton").addEventListener("click", exportData);

@@ -1048,7 +1048,7 @@ select:hover {
 
 .detail-hero {
   display: grid;
-  grid-template-columns: 62px minmax(0, 1fr);
+  grid-template-columns: 62px minmax(0, 1fr) auto;
   gap: 13px;
   align-items: center;
   padding: 4px 0 18px;
@@ -1062,6 +1062,14 @@ select:hover {
 
 .detail-hero .avatar span {
   font-size: 22px;
+}
+
+.detail-hero-copy {
+  min-width: 0;
+}
+
+.detail-hero-actions {
+  align-self: start;
 }
 
 .detail-name {
@@ -1670,6 +1678,11 @@ select:hover {
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.48);
 }
 
+.role-edit-modal {
+  max-height: min(820px, calc(100vh - 32px));
+  overflow: auto;
+}
+
 .modal::backdrop {
   background: rgba(3, 4, 6, 0.72);
   backdrop-filter: blur(4px);
@@ -1742,6 +1755,22 @@ select:hover {
   border: 1px solid var(--line);
   border-radius: var(--radius-small);
   background: rgba(255, 255, 255, 0.018);
+}
+
+.edit-talent-section {
+  margin: 4px 0 15px;
+  padding: 2px 11px 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.edit-talent-section .form-section-heading {
+  margin-top: 8px;
+}
+
+.edit-talent-section .form-field {
+  margin-bottom: 10px;
 }
 
 .relic-form-section .form-section-heading {

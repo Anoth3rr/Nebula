@@ -271,6 +271,93 @@
       </form>
     </dialog>
 
+    <dialog class="modal role-edit-modal" id="roleEditDialog">
+      <form method="dialog" id="roleEditForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">OPERATIVE PROFILE</p>
+            <h3>编辑角色</h3>
+          </div>
+          <button class="icon-button subtle" value="cancel" type="submit" title="关闭" aria-label="关闭">×</button>
+        </div>
+        <div class="form-grid">
+          <label class="form-field">
+            <span>角色名称</span>
+            <input id="roleEditNameInput" name="roleEditName" required maxlength="24" placeholder="例如：奈芙尔" />
+          </label>
+          <label class="form-field">
+            <span>星级</span>
+            <input id="roleEditRarityInput" name="roleEditRarity" type="number" min="1" max="6" step="1" required />
+          </label>
+          <label class="form-field">
+            <span>元素 / 属性</span>
+            <input id="roleEditElementInput" name="roleEditElement" maxlength="12" placeholder="例如：火、量子" />
+          </label>
+          <label class="form-field">
+            <span>定位</span>
+            <input id="roleEditRoleInput" name="roleEditRole" maxlength="12" placeholder="例如：主C、辅助" />
+          </label>
+          <label class="form-field">
+            <span>当前等级</span>
+            <input id="roleEditLevelInput" name="roleEditLevel" type="number" min="1" max="200" step="1" required />
+          </label>
+          <label class="form-field">
+            <span>等级上限</span>
+            <input id="roleEditMaxLevelInput" name="roleEditMaxLevel" type="number" min="1" max="200" step="1" required />
+          </label>
+          <label class="form-field">
+            <span id="roleEditDuplicateLabel">命座</span>
+            <input id="roleEditDuplicateInput" name="roleEditDuplicate" type="number" min="0" max="6" step="1" required />
+          </label>
+          <label class="form-field">
+            <span>头像底色</span>
+            <input id="roleEditColorInput" name="roleEditColor" type="color" />
+          </label>
+        </div>
+        <section class="edit-talent-section">
+          <div class="form-section-heading"><span>技能 / 节点等级</span><span id="roleEditTalentHint">按当前游戏填写</span></div>
+          <div class="form-grid" id="roleEditTalentGrid"></div>
+        </section>
+        <label class="form-field">
+          <span>角色备注</span>
+          <textarea id="roleEditNoteInput" name="roleEditNote" maxlength="180" rows="3" placeholder="记录角色定位、循环或培养备注"></textarea>
+        </label>
+        <div class="modal-actions">
+          <button class="button button-quiet" value="cancel" type="submit">取消</button>
+          <button class="button button-primary" id="saveRoleEditButton" value="default" type="submit">保存角色</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="teamEditDialog">
+      <form method="dialog" id="teamEditForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">SQUAD PROFILE</p>
+            <h3>编辑配队</h3>
+          </div>
+          <button class="icon-button subtle" value="cancel" type="submit" title="关闭" aria-label="关闭">×</button>
+        </div>
+        <label class="form-field">
+          <span>方案名称</span>
+          <input id="teamEditNameInput" name="teamEditName" required maxlength="24" placeholder="例如：深境螺旋 · 下半" />
+        </label>
+        <label class="form-field">
+          <span>备注</span>
+          <input id="teamEditNoteInput" name="teamEditNote" maxlength="72" placeholder="队伍定位或循环备注" />
+        </label>
+        <label class="form-field">
+          <span>标签</span>
+          <input id="teamEditTagsInput" name="teamEditTags" maxlength="120" placeholder="用逗号分隔，例如：冰水反应，速切" />
+        </label>
+        <div class="slot-grid" id="teamEditSlotGrid"></div>
+        <div class="modal-actions">
+          <button class="button button-quiet" value="cancel" type="submit">取消</button>
+          <button class="button button-primary" id="saveTeamEditButton" value="default" type="submit">保存配队</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog class="modal" id="inventoryDialog">
       <form method="dialog" id="inventoryForm">
         <div class="modal-header">
