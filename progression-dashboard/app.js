@@ -495,6 +495,7 @@ const state = {
   toastTimer: null,
   editingRoleId: null,
   editingTeamId: null,
+  editingInventoryId: null,
 };
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -730,10 +731,23 @@ function relicPieceIconCandidates(gameKey, item) {
     const option = findRelicSetOption(gameKey, value);
     return option?.icon || wikiRelicFiles[gameKey]?.[option?.value || value] || "";
   }).filter(Boolean);
-  const files = unique([...exactFiles, genericFile, ...fallbackSetFile]);
-  const localFiles = files.filter((fileName) => cachedRelicIconFiles.has(fileName)).map((fileName) => wikiImageUrl(gameKey, fileName)).filter(Boolean);
-  const remoteFiles = files.map((fileName) => wikiFileUrl(gameKey, fileName)).filter(Boolean);
-  return unique([...localFiles, ...remoteFiles]);
+  // Keep the selected set and slot together. A generic local icon must not
+  // outrank the exact Wiki file for a newly added relic set.
+  const localFor = (fileName) => cachedRelicIconFiles.has(fileName) ? wikiImageUrl(gameKey, fileName) : "";
+  const localExact = exactFiles.map(localFor).filter(Boolean);
+  const remoteExact = exactFiles.map((fileName) => wikiFileUrl(gameKey, fileName)).filter(Boolean);
+  const localGeneric = localFor(genericFile);
+  const remoteGeneric = wikiFileUrl(gameKey, genericFile);
+  const localSet = fallbackSetFile.map(localFor).filter(Boolean);
+  const remoteSet = fallbackSetFile.map((fileName) => wikiFileUrl(gameKey, fileName)).filter(Boolean);
+  return unique([
+    ...localExact,
+    ...remoteExact,
+    ...(localGeneric ? [localGeneric] : []),
+    ...(remoteGeneric ? [remoteGeneric] : []),
+    ...localSet,
+    ...remoteSet,
+  ]);
 }
 
 function relicSlotOptionsMarkup(gameKey, selected = "") {
@@ -1807,7 +1821,7 @@ function renderInventoryDetail() {
     ? `${detailStat("等级", item.level == null ? "未强化" : `${item.level} / ${item.maxLevel || meta().levelMax}`)}${detailStat("精炼", item.refinement || 1)}${detailStat("稀有度", `${item.rarity || "—"} 星`)}`
     : `${detailStat("评分", item.score == null ? "未评分" : Number(item.score).toFixed(1).replace(".0", ""))}${detailStat("稀有度", `${item.rarity || "—"} 星`)}${detailStat("持有状态", holder ? "已装备" : "空闲")}`;
   const wikiHref = wikiHomes[state.activeGame] || "https://wiki.biligame.com/";
-  container.innerHTML = `<div class="inventory-detail"><div class="inventory-detail-head">${inventoryIcon(item, "inventory-detail-icon")}<div><p class="eyebrow">${escapeHtml(inventoryTypeLabel(item.kind).toUpperCase())}</p><h3>${escapeHtml(item.name)}</h3><div class="rarity-stars">${stars(item.rarity)}</div></div><button class="icon-button subtle" type="button" data-toggle-lock="${escapeHtml(item.id)}" title="${item.locked ? "取消锁定" : "锁定条目"}" aria-label="${item.locked ? "取消锁定" : "锁定条目"}">${item.locked ? "◆" : "◇"}</button></div>
+  container.innerHTML = `<div class="inventory-detail"><div class="inventory-detail-head">${inventoryIcon(item, "inventory-detail-icon")}<div><p class="eyebrow">${escapeHtml(inventoryTypeLabel(item.kind).toUpperCase())}</p><h3>${escapeHtml(item.name)}</h3><div class="rarity-stars">${stars(item.rarity)}</div></div><div class="inventory-detail-actions"><button class="icon-button subtle" type="button" data-edit-inventory="${escapeHtml(item.id)}" title="编辑装备详情" aria-label="编辑装备详情">✎</button><button class="icon-button subtle" type="button" data-toggle-lock="${escapeHtml(item.id)}" title="${item.locked ? "取消锁定" : "锁定条目"}" aria-label="${item.locked ? "取消锁定" : "锁定条目"}">${item.locked ? "◆" : "◇"}</button></div></div>
     <div class="detail-stats inventory-detail-stats">${statRows}</div>
     ${relicAttributes}
     <div class="inventory-holder"><span>当前角色</span>${holder ? `<button class="text-action" type="button" data-open-inventory-holder="${escapeHtml(holder.id)}">${escapeHtml(holder.name)} · ${escapeHtml(meta().name)}</button><button class="button button-quiet" type="button" data-unassign-inventory="${escapeHtml(item.id)}">卸下</button>` : `<span class="inventory-unassigned">未装备</span>`}</div>
@@ -1882,6 +1896,7 @@ function setGame(gameKey) {
   $("#inventorySearch").value = "";
   state.selectedRoleId = null;
   state.selectedInventoryId = null;
+  state.editingInventoryId = null;
   state.selectedTeamId = state.data.games[gameKey].teams?.[0]?.id || null;
   saveData();
   renderAll();
@@ -2144,8 +2159,60 @@ function renderInventoryRelicFields() {
   bindIconFallbacks(section);
 }
 
+function setInventoryDialogMode(editing, kind = "") {
+  const typeLabel = kind ? inventoryTypeLabel(kind) : "装备";
+  const eyebrow = $("#inventoryDialogEyebrow");
+  const title = $("#inventoryDialogTitle");
+  const saveButton = $("#saveInventoryButton");
+  const kindInput = $("#inventoryKindInput");
+  if (eyebrow) eyebrow.textContent = editing ? "EDIT INVENTORY ITEM" : "NEW INVENTORY ITEM";
+  if (title) title.textContent = editing ? `编辑${typeLabel}` : "加入仓库";
+  if (saveButton) saveButton.textContent = editing ? "保存修改" : "加入仓库";
+  if (kindInput) kindInput.disabled = Boolean(editing);
+}
+
+function populateInventoryDialog(item) {
+  const kindInput = $("#inventoryKindInput");
+  if (!kindInput || !item) return;
+  kindInput.value = item.kind || kindInput.options[0]?.value || "";
+  $("#inventoryNameInput").value = item.name || "";
+  $("#inventoryRarityInput").value = Number(item.rarity) || 5;
+  $("#inventoryLevelInput").value = item.level == null ? "" : item.level;
+  $("#inventoryRefinementInput").value = Number(item.refinement) || 1;
+  $("#inventoryScoreInput").value = item.score == null ? "" : item.score;
+  $("#inventoryWikiFileInput").value = item.wikiFile || "";
+  $("#inventoryNoteInput").value = item.note || "";
+  $("#inventorySubstatsInput").value = item.substats || "";
+  $("#inventoryNameInput").dataset.autoName = item.customName ? "false" : "true";
+  renderInventoryRelicFields();
+  if (!isRelicKind(state.activeGame, item.kind)) return;
+
+  const setFields = $("#inventoryRelicSetFields");
+  const rawSets = Array.isArray(item.sets) ? item.sets : parseLegacyRelicSets(state.activeGame, item.set);
+  $$('[data-inventory-set]', setFields).forEach((select, index) => {
+    select.value = normalizeRelicSetValue(state.activeGame, rawSets[index] || "");
+    const iconHost = $(`[data-inventory-set-icon="${index}"]`, setFields);
+    if (iconHost) {
+      iconHost.innerHTML = relicSetIconMarkup(state.activeGame, select.value);
+      bindIconFallbacks(iconHost);
+    }
+  });
+  const slotInput = $("#inventoryRelicSlotInput");
+  if (slotInput) slotInput.value = normalizeRelicSlot(state.activeGame, item.slot || item.part || item.position);
+  renderInventoryRelicStatFields();
+  const slot = findRelicSlot(state.activeGame, slotInput?.value || "");
+  if (slot && !slot.fixed) {
+    const statInput = $(`[data-inventory-stat="${slot.key}"]`, $("#inventoryRelicStatFields"));
+    if (statInput) statInput.value = normalizeStatValue(slot, item.mainStats?.[slot.key]);
+  }
+  updateInventoryNameFromSet();
+  updateInventoryRelicSlotIcon();
+  bindIconFallbacks($("#inventoryRelicFields"));
+}
+
 function openInventoryDialog() {
   const dialog = $("#inventoryDialog");
+  state.editingInventoryId = null;
   $("#inventoryNameInput").value = "";
   $("#inventoryRarityInput").value = "5";
   $("#inventoryLevelInput").value = "";
@@ -2156,7 +2223,23 @@ function openInventoryDialog() {
   $("#inventorySubstatsInput").value = "";
   $("#inventoryNameInput").dataset.autoName = "false";
   $("#inventoryKindInput").innerHTML = inventoryTypeForGame().map((entry) => `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)}</option>`).join("");
+  setInventoryDialogMode(false, $("#inventoryKindInput").value);
   renderInventoryRelicFields();
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", "");
+}
+
+function openInventoryEditDialog(itemId = state.selectedInventoryId) {
+  const item = inventoryItems().find((entry) => entry.id === itemId);
+  const dialog = $("#inventoryDialog");
+  if (!item || !dialog) {
+    showToast("未找到要编辑的仓库条目");
+    return;
+  }
+  state.editingInventoryId = item.id;
+  $("#inventoryKindInput").innerHTML = inventoryTypeForGame().map((entry) => `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)}</option>`).join("");
+  populateInventoryDialog(item);
+  setInventoryDialogMode(true, item.kind);
   if (typeof dialog.showModal === "function") dialog.showModal();
   else dialog.setAttribute("open", "");
 }
@@ -2181,8 +2264,40 @@ function readInventoryRelicForm(gameKey = state.activeGame) {
   };
 }
 
+function moveHeldRelicAssignment(item, nextSlot) {
+  if (!item?.holderId || !nextSlot) return true;
+  const holder = findRole(item.holderId);
+  if (!holder) return true;
+  const ids = roleGearIds(holder);
+  const occupyingId = ids[nextSlot];
+  if (occupyingId && occupyingId !== item.id) {
+    const occupying = inventoryItems().find((entry) => entry.id === occupyingId);
+    if (occupying?.locked) {
+      showToast("目标部位装备已锁定，请先解锁");
+      return false;
+    }
+    if (occupying?.holderId && occupying.holderId !== holder.id) {
+      const occupyingHolder = findRole(occupying.holderId);
+      if (occupyingHolder) clearRoleEquipment(occupyingHolder, "relic", nextSlot);
+      else occupying.holderId = null;
+    } else if (occupying) occupying.holderId = null;
+  }
+  Object.keys(ids).forEach((key) => {
+    if (key !== nextSlot && ids[key] === item.id) delete ids[key];
+  });
+  ids[nextSlot] = item.id;
+  return true;
+}
+
 function saveInventoryFromDialog() {
-  const kind = $("#inventoryKindInput").value;
+  const editingItem = state.editingInventoryId
+    ? inventoryItems().find((entry) => entry.id === state.editingInventoryId)
+    : null;
+  if (state.editingInventoryId && !editingItem) {
+    showToast("未找到要编辑的仓库条目");
+    return false;
+  }
+  const kind = editingItem?.kind || $("#inventoryKindInput").value;
   const relicValues = isRelicKind(state.activeGame, kind) ? readInventoryRelicForm(state.activeGame) : null;
   let name = $("#inventoryNameInput").value.trim();
   if (relicValues) {
@@ -2199,36 +2314,78 @@ function saveInventoryFromDialog() {
   }
   const levelText = $("#inventoryLevelInput").value.trim();
   const scoreText = $("#inventoryScoreInput").value.trim();
-  const item = {
-    id: `${state.activeGame}-inventory-${Date.now()}`,
+  const parsedScore = scoreText ? Number(scoreText) : null;
+  const common = {
     kind,
     name,
     rarity: clamp(Number($("#inventoryRarityInput").value) || 4, 1, 6),
     level: levelText ? clamp(Number(levelText) || 1, 1, meta().levelMax) : null,
-    maxLevel: meta().levelMax,
+    maxLevel: Number(editingItem?.maxLevel) || meta().levelMax,
     refinement: clamp(Number($("#inventoryRefinementInput").value) || 1, 1, 5),
-    score: scoreText ? Number(scoreText) : null,
+    score: parsedScore == null || Number.isFinite(parsedScore) ? parsedScore : null,
+    iconCached: editingItem ? editingItem.iconCached !== false : Boolean(relicValues),
+    wikiFile: $("#inventoryWikiFileInput").value.trim(),
+    note: $("#inventoryNoteInput").value.trim(),
+  };
+  const relicFields = relicValues ? {
+    slot: relicValues.slot,
+    sets: relicValues.sets,
+    set: relicValues.sets.filter(Boolean).join(" + "),
+    mainStats: relicValues.mainStats,
+    substats: relicValues.substats,
+    customName: Boolean(name !== relicValues.defaultName),
+  } : {};
+
+  if (editingItem) {
+    if (relicValues && editingItem.holderId && editingItem.slot !== relicValues.slot && !moveHeldRelicAssignment(editingItem, relicValues.slot)) return false;
+    const holderId = editingItem.holderId;
+    Object.assign(editingItem, common, relicFields);
+    state.selectedInventoryId = editingItem.id;
+    const holder = holderId ? findRole(holderId) : null;
+    if (holder && relicValues) syncRoleGearSnapshot(holder);
+    else if (holder && kind === "weapon") {
+      holder.weapon = {
+        name: editingItem.name,
+        rarity: editingItem.rarity,
+        refinement: editingItem.refinement,
+        level: editingItem.level || 0,
+        maxLevel: editingItem.maxLevel,
+      };
+    } else if (holder) {
+      holder.gear = {
+        ...(holder.gear || {}),
+        set: editingItem.name,
+        sets: editingItem.sets || [],
+        score: editingItem.score,
+        pieces: editingItem.pieces || [],
+        mainStats: editingItem.mainStats || {},
+        substats: editingItem.substats || "",
+      };
+    }
+    saveData("仓库条目已更新");
+    state.editingInventoryId = null;
+    setInventoryDialogMode(false, kind);
+    $("#inventoryDialog").close();
+    renderAll();
+    showToast("装备详情已保存");
+    return true;
+  }
+
+  const item = {
+    id: `${state.activeGame}-inventory-${Date.now()}`,
+    ...common,
     pieces: [],
     holderId: null,
     locked: false,
-    iconCached: Boolean(relicValues) || false,
-    wikiFile: $("#inventoryWikiFileInput").value.trim(),
-    note: $("#inventoryNoteInput").value.trim(),
-    ...(relicValues ? {
-      slot: relicValues.slot,
-      sets: relicValues.sets,
-      set: relicValues.sets.filter(Boolean).join(" + "),
-      mainStats: relicValues.mainStats,
-      substats: relicValues.substats,
-      customName: Boolean(name !== relicValues.defaultName),
-    } : {}),
+    ...relicFields,
   };
   inventoryForGame().items.unshift(item);
   state.selectedInventoryId = item.id;
   saveData("仓库条目已保存");
-  renderStats();
-  renderInventory();
+  state.editingInventoryId = null;
+  setInventoryDialogMode(false, kind);
   $("#inventoryDialog").close();
+  renderAll();
   showToast("已加入仓库");
   return true;
 }
@@ -2287,6 +2444,7 @@ function importData(file) {
       state.activeGame = imported.activeGame && imported.games[imported.activeGame] ? imported.activeGame : "genshin";
       state.selectedRoleId = null;
       state.selectedInventoryId = null;
+      state.editingInventoryId = null;
       state.inventoryQuery = "";
       state.inventoryKind = "all";
       state.inventorySort = "name";
@@ -2312,6 +2470,7 @@ function resetSample() {
   state.activeGame = "genshin";
   state.selectedRoleId = null;
   state.selectedInventoryId = null;
+  state.editingInventoryId = null;
   state.inventoryQuery = "";
   state.inventoryKind = "all";
   state.inventorySort = "name";
@@ -2458,6 +2617,11 @@ function bindEvents() {
     renderInventory();
   });
   $("#inventoryDetailContent").addEventListener("click", (event) => {
+    const editButton = event.target.closest("[data-edit-inventory]");
+    if (editButton) {
+      openInventoryEditDialog(editButton.dataset.editInventory);
+      return;
+    }
     const holderButton = event.target.closest("[data-open-inventory-holder]");
     if (holderButton) {
       state.selectedRoleId = holderButton.dataset.openInventoryHolder;
@@ -2496,7 +2660,7 @@ function bindEvents() {
   });
   $("#newInventoryButton").addEventListener("click", openInventoryDialog);
   $("#inventoryForm").addEventListener("submit", (event) => {
-    if (event.submitter?.value === "default") {
+    if (!event.submitter || event.submitter.value === "default") {
       event.preventDefault();
       saveInventoryFromDialog();
     }

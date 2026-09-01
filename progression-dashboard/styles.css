@@ -2218,6 +2218,11 @@ select:hover {
   font-weight: 640;
 }
 
+.inventory-detail-actions {
+  display: flex;
+  gap: 4px;
+}
+
 .inventory-detail-icon {
   width: 68px;
   height: 78px;
