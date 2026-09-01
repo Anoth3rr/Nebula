@@ -280,9 +280,9 @@
           </div>
           <button class="icon-button subtle" value="cancel" type="submit" title="关闭" aria-label="关闭">×</button>
         </div>
-        <label class="form-field">
+        <label class="form-field" id="inventoryNameField">
           <span>条目名称</span>
-          <input id="inventoryNameInput" name="inventoryName" required maxlength="36" placeholder="例如：天空之刃" />
+          <input id="inventoryNameInput" name="inventoryName" maxlength="36" placeholder="例如：天空之刃；遗器可由套装自动填充" />
         </label>
         <div class="form-grid">
           <label class="form-field">
@@ -310,9 +310,18 @@
             <input id="inventoryWikiFileInput" name="inventoryWikiFile" maxlength="80" placeholder="例如：霜辰.png" />
           </label>
         </div>
+        <section class="relic-form-section" id="inventoryRelicFields" hidden>
+          <div class="form-section-heading"><span>套装与词条</span><span>主词条可选，副词条手填</span></div>
+          <div class="form-grid" id="inventoryRelicSetFields"></div>
+          <div class="relic-stat-form-grid" id="inventoryRelicStatFields"></div>
+          <label class="form-field">
+            <span>副词条（手填）</span>
+            <textarea id="inventorySubstatsInput" name="inventorySubstats" maxlength="180" rows="2" placeholder="例如：暴击率、暴击伤害、速度"></textarea>
+          </label>
+        </section>
         <label class="form-field">
-          <span>备注</span>
-          <input id="inventoryNoteInput" name="inventoryNote" maxlength="60" placeholder="来源、强化目标或套装说明" />
+          <span>实际装备备注</span>
+          <input id="inventoryNoteInput" name="inventoryNote" maxlength="60" placeholder="来源、强化目标或实际装备备注" />
         </label>
         <div class="modal-actions">
           <button class="button button-quiet" value="cancel" type="submit">取消</button>

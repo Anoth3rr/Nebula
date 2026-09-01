@@ -907,6 +907,22 @@ select:hover {
   white-space: nowrap;
 }
 
+.role-target-line {
+  display: flex;
+  min-width: 0;
+  gap: 5px;
+  overflow: hidden;
+  color: var(--accent-strong);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role-target-line span {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+}
+
 .level-block,
 .gear-block {
   display: grid;
@@ -1096,6 +1112,136 @@ select:hover {
 .detail-section-title span:last-child {
   color: var(--text-muted);
   font-weight: 400;
+}
+
+.build-target-section {
+  padding-top: 19px;
+}
+
+.build-target-section .detail-section-title span:last-child {
+  max-width: 58%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.target-hint {
+  margin: -2px 0 12px;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.target-set-grid,
+.target-stat-grid,
+.relic-stat-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px 10px;
+}
+
+.target-field,
+.target-substats-field {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.target-field select {
+  width: 100%;
+  min-width: 0;
+}
+
+.target-field-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  gap: 7px;
+}
+
+.target-field-heading > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.set-picker-icon {
+  width: 24px;
+  height: 24px;
+  border-color: rgba(226, 181, 109, 0.3);
+  border-radius: 4px;
+  background: rgba(226, 181, 109, 0.1);
+}
+
+.set-picker-icon .icon-fallback {
+  font-size: 10px;
+}
+
+[data-inventory-set-icon] {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.target-stat-heading,
+.form-section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 15px 0 8px;
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.target-stat-heading span:last-child,
+.form-section-heading span:last-child {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.target-fixed-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 9px;
+}
+
+.target-fixed-stat {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: rgba(113, 200, 184, 0.06);
+}
+
+.target-fixed-stat span {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.target-fixed-stat strong {
+  overflow: hidden;
+  color: var(--teal);
+  font-size: 10px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.target-substats-field {
+  margin-top: 12px;
+}
+
+.target-substats-field .note-box {
+  min-height: 58px;
 }
 
 .detail-stats {
@@ -1570,6 +1716,46 @@ select:hover {
   border-color: rgba(226, 181, 109, 0.58);
 }
 
+.form-field textarea {
+  width: 100%;
+  min-height: 55px;
+  resize: vertical;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  outline: 0;
+  background: var(--bg-soft);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.form-field textarea:focus {
+  border-color: rgba(226, 181, 109, 0.58);
+}
+
+.relic-form-section {
+  margin: 4px 0 2px;
+  padding: 2px 11px 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.relic-form-section .form-section-heading {
+  margin-top: 8px;
+}
+
+.relic-form-section .form-grid,
+.relic-form-section .relic-stat-form-grid {
+  gap: 0 10px;
+}
+
+.relic-form-section .target-fixed-stat {
+  margin-bottom: 13px;
+}
+
 .slot-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1996,6 +2182,32 @@ select:hover {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.inventory-attribute-block {
+  display: grid;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.inventory-attribute-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.inventory-attribute-row strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 500;
+}
+
 .inventory-holder {
   display: flex;
   align-items: center;
@@ -2385,6 +2597,13 @@ select:hover {
   }
 
   .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .target-set-grid,
+  .target-stat-grid,
+  .target-fixed-grid,
+  .relic-stat-form-grid {
     grid-template-columns: 1fr;
   }
 
