@@ -1181,7 +1181,8 @@ select:hover {
   font-size: 10px;
 }
 
-[data-inventory-set-icon] {
+[data-inventory-set-icon],
+[data-inventory-slot-icon] {
   display: inline-flex;
   flex: 0 0 auto;
 }
@@ -1754,6 +1755,27 @@ select:hover {
 
 .relic-form-section .target-fixed-stat {
   margin-bottom: 13px;
+}
+
+.relic-slot-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 10px;
+}
+
+.relic-slot-form .form-field {
+  margin-bottom: 10px;
+}
+
+.relic-slot-placeholder {
+  display: flex;
+  min-height: 37px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-small);
+  color: var(--text-muted);
+  font-size: 10px;
 }
 
 .slot-grid {

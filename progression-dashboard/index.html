@@ -282,7 +282,7 @@
         </div>
         <label class="form-field" id="inventoryNameField">
           <span>条目名称</span>
-          <input id="inventoryNameInput" name="inventoryName" maxlength="36" placeholder="例如：天空之刃；遗器可由套装自动填充" />
+          <input id="inventoryNameInput" name="inventoryName" maxlength="36" placeholder="例如：天空之刃；遗器自动命名为套装名·部位" />
         </label>
         <div class="form-grid">
           <label class="form-field">
@@ -311,8 +311,9 @@
           </label>
         </div>
         <section class="relic-form-section" id="inventoryRelicFields" hidden>
-          <div class="form-section-heading"><span>套装与词条</span><span>主词条可选，副词条手填</span></div>
+          <div class="form-section-heading"><span>套装、部位与词条</span><span>主词条可选，副词条手填</span></div>
           <div class="form-grid" id="inventoryRelicSetFields"></div>
+          <div class="relic-slot-form" id="inventoryRelicSlotFields"></div>
           <div class="relic-stat-form-grid" id="inventoryRelicStatFields"></div>
           <label class="form-field">
             <span>副词条（手填）</span>

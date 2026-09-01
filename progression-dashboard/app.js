@@ -1,7 +1,7 @@
 /* global Blob, URL */
 
 const STORAGE_KEY = "nebula-progression-workbench-v1";
-const DATA_VERSION = 3;
+const DATA_VERSION = 4;
 const MAX_TALENT = 13;
 
 const gameMeta = {
@@ -293,6 +293,71 @@ const buildTargetMeta = {
       { key: "rope", label: "连结绳", options: starrailRopeOptions },
     ],
   },
+};
+
+// BWiki uses item names rather than slot names for Star Rail relic pieces.
+// Keep the mapping local so the inventory can still resolve a precise image offline/without API calls.
+const relicSlotIconFiles = {
+  starrail: {
+    诗人: { head: "诗人的莳萝花冠.png", hands: "诗人的贵金手镯.png", body: "诗人的缀星裙摆.png", feet: "诗人的钉银之履.png" },
+    拾骨地: { sphere: "哀地里亚的殁名祭碑.png", rope: "哀地里亚的入溟骨链.png" },
+    救世主: { head: "救世主的登程风帽.png", hands: "救世主的执剑护手.png", body: "救世主的传承战袍.png", feet: "救世主的拓荒长靴.png" },
+    翁瓦克: { sphere: "翁瓦克的诞生之岛.png", rope: "翁瓦克的环岛海岸.png" },
+    女武神: { head: "女武神的翱翔翼盔.png", hands: "女武神的骑枪手铠.png", body: "女武神的启程披风.png", feet: "女武神的勋礼马刺.png" },
+    巨树: { sphere: "神悟树庭的沉思巨桹.png", rope: "神悟树庭的联识叶路.png" },
+    船长: { head: "船长的领航笠帽.png", hands: "船长的捕光星盘.png", body: "船长的驭风斗篷.png", feet: "船长的踏浪游靴.png" },
+    格拉默: { sphere: "格拉默的铁骑兵团.png", rope: "格拉默的寂静坟碑.png" },
+    铁骑: { head: "铁骑的索敌战盔.png", hands: "铁骑的摧坚铁腕.png", body: "铁骑的银影装甲.png", feet: "铁骑的行空护胫.png" },
+    劫火: { sphere: "铸炼宫的莲华灯芯.png", rope: "铸炼宫的焰轮天绸.png" },
+    钟表匠: { head: "钟表匠的极目透镜.png", hands: "钟表匠的交运腕表.png", body: "钟表匠的空幻礼服.png", feet: "钟表匠的隐梦革履.png" },
+    司铎: { head: "司铎的律音耳坠.png", hands: "司铎的授邀手套.png", body: "司铎的圣职礼服.png", feet: "司铎的苦旅短靴.png" },
+    露莎卡: { sphere: "酣歌海垠的礁屿灯塔.png", rope: "酣歌海垠的歌咏步道.png" },
+    枪手: { head: "快枪手的野穗毡帽.png", hands: "快枪手的粗革手套.png", body: "快枪手的猎风披肩.png", feet: "快枪手的铆钉马靴.png" },
+    天才: { head: "天才的超距遥感.png", hands: "天才的频变捕手.png", body: "天才的元域深潜.png", feet: "天才的引力漫步.png" },
+    信使: { head: "信使的全息目镜.png", hands: "信使的百变义手.png", body: "信使的密信挎包.png", feet: "信使的酷跑板鞋.png" },
+    过客: { head: "过客的逢春木簪.png", hands: "过客的游龙臂鞲.png", body: "过客的残绣风衣.png", feet: "过客的冥途游履.png" },
+    匹诺康尼: { sphere: "匹诺康尼的堂皇酒店.png", rope: "匹诺康尼的逐梦轨道.png" },
+    茨冈尼亚: { sphere: "茨冈尼亚的母神卧榻.png", rope: "茨冈尼亚的轮回纽结.png" },
+    出云: { sphere: "出云的祸津众神.png", rope: "出云的终始一刀.png" },
+    停转: { sphere: "萨尔索图的移动城市.png", rope: "萨尔索图的晨昏界线.png" },
+  },
+};
+
+const genericRelicSlotIconFiles = {
+  genshin: {
+    flower: "黄金剧团生之花.png",
+    plume: "黄金剧团死之羽.png",
+    sands: "黄金剧团时之沙.png",
+    goblet: "黄金剧团空之杯.png",
+    circlet: "黄金剧团理之冠.png",
+  },
+  starrail: {
+    head: "诗人的莳萝花冠.png",
+    hands: "诗人的贵金手镯.png",
+    body: "诗人的缀星裙摆.png",
+    feet: "诗人的钉银之履.png",
+    sphere: "哀地里亚的殁名祭碑.png",
+    rope: "哀地里亚的入溟骨链.png",
+  },
+};
+
+const cachedRelicIconFiles = new Set([
+  ...Object.values(wikiRelicFiles).flatMap((files) => Object.values(files)),
+  ...Object.values(genericRelicSlotIconFiles).flatMap((files) => Object.values(files)),
+]);
+
+const relicSlotAliases = {
+  flower: ["flower", "生之花", "花"],
+  plume: ["plume", "死之羽", "羽"],
+  sands: ["sands", "时之沙", "沙", "沙漏"],
+  goblet: ["goblet", "空之杯", "杯"],
+  circlet: ["circlet", "理之冠", "冠", "头"],
+  head: ["head", "头部", "头"],
+  hands: ["hands", "手部", "手"],
+  body: ["body", "躯干", "身体", "身"],
+  feet: ["feet", "脚部", "脚"],
+  sphere: ["sphere", "位面球", "球"],
+  rope: ["rope", "连结绳", "绳"],
 };
 
 const makeRole = (id, name, rarity, duplicate, level, weapon, weaponRarity, weaponRefinement, weaponLevel, talents, gearSet, score, pieces, note, role, element, color, extra = {}) => ({
@@ -594,6 +659,81 @@ function statShortForSlot(slot, value) {
   return findStatOption(slot, value)?.short || "";
 }
 
+function findRelicSlot(gameKey, value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const normalized = raw.replace(/\s+/g, "");
+  return relicSlots(gameKey).find((slot) => {
+    const aliases = relicSlotAliases[slot.key] || [];
+    return [slot.key, slot.label, ...aliases].some((candidate) => String(candidate).replace(/\s+/g, "") === normalized);
+  }) || null;
+}
+
+function normalizeRelicSlot(gameKey, value) {
+  return findRelicSlot(gameKey, value)?.key || "";
+}
+
+function inferRelicSlotFromName(gameKey, value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const suffix = raw.split(/[·•]/).pop()?.trim() || "";
+  return normalizeRelicSlot(gameKey, suffix);
+}
+
+function relicSlotLabel(gameKey, value, fallback = "未指定部位") {
+  return findRelicSlot(gameKey, value)?.label || fallback;
+}
+
+function relicSetIndexForSlot(gameKey, slotKey) {
+  if (gameKey === "starrail" && ["sphere", "rope"].includes(slotKey)) return 1;
+  return 0;
+}
+
+function relicSetValueForSlot(gameKey, sets, slotKey) {
+  const values = Array.isArray(sets) ? sets : [];
+  const preferred = values[relicSetIndexForSlot(gameKey, slotKey)];
+  return preferred || values.find(Boolean) || "";
+}
+
+function relicItemDefaultName(gameKey, sets, slotKey) {
+  const setValue = relicSetValueForSlot(gameKey, sets, slotKey);
+  const setLabel = relicSetLabel(gameKey, setValue);
+  const slotLabel = relicSlotLabel(gameKey, slotKey, "");
+  if (!setLabel || !slotLabel) return "";
+  return `${setLabel}·${slotLabel}`;
+}
+
+function relicPieceFileName(gameKey, setValue, slotKey) {
+  const option = findRelicSetOption(gameKey, setValue);
+  const slot = findRelicSlot(gameKey, slotKey);
+  if (!option || !slot) return "";
+  const mapped = relicSlotIconFiles[gameKey]?.[option.value]?.[slot.key];
+  if (mapped) return mapped;
+  if (gameKey === "genshin") return `${option.label}${slot.label}.png`;
+  return "";
+}
+
+function relicPieceIconCandidates(gameKey, item) {
+  const slotKey = normalizeRelicSlot(gameKey, item?.slot || item?.part || item?.position);
+  const sets = Array.isArray(item?.sets) ? item.sets : String(item?.set || "").split(/\s*[+＋·]\s*/).filter(Boolean);
+  const preferredSet = relicSetValueForSlot(gameKey, sets, slotKey);
+  const setValues = unique([preferredSet, ...sets]);
+  const exactFiles = setValues.map((value) => relicPieceFileName(gameKey, value, slotKey)).filter(Boolean);
+  const genericFile = genericRelicSlotIconFiles[gameKey]?.[slotKey] || "";
+  const fallbackSetFile = setValues.map((value) => {
+    const option = findRelicSetOption(gameKey, value);
+    return option?.icon || wikiRelicFiles[gameKey]?.[option?.value || value] || "";
+  }).filter(Boolean);
+  const files = unique([...exactFiles, genericFile, ...fallbackSetFile]);
+  const localFiles = files.filter((fileName) => cachedRelicIconFiles.has(fileName)).map((fileName) => wikiImageUrl(gameKey, fileName)).filter(Boolean);
+  const remoteFiles = files.map((fileName) => wikiFileUrl(gameKey, fileName)).filter(Boolean);
+  return unique([...localFiles, ...remoteFiles]);
+}
+
+function relicSlotOptionsMarkup(gameKey, selected = "") {
+  return `<option value="">未选择</option>${relicSlots(gameKey).map((slot) => `<option value="${escapeHtml(slot.key)}" ${slot.key === selected ? "selected" : ""}>${escapeHtml(slot.label)}</option>`).join("")}`;
+}
+
 function defaultBuildTarget(gameKey = state.activeGame) {
   const config = relicConfig(gameKey);
   return {
@@ -795,13 +935,8 @@ function inventoryIconCandidates(gameKey, item) {
     else if (gameKey !== "wuthering" && !/[+＋]/.test(name)) names.push(`${name}.png`);
   }
   if (!item?.wikiFile && item?.iconCached !== false && item?.kind === "relic") {
-    const setName = item?.sets?.[0] || item?.set || pieces[0];
-    const setOption = findRelicSetOption(gameKey, setName);
-    const relicFile = setOption?.icon || wikiRelicFiles[gameKey]?.[setName];
-    if (relicFile) {
-      names.push(relicFile);
-      remoteNames.push(relicFile);
-    }
+    const candidates = relicPieceIconCandidates(gameKey, item);
+    return unique([...explicitUrls, ...candidates]);
   }
   if (!item?.wikiFile && item?.iconCached !== false && item?.kind === "equipment" && gameKey === "endfield" && name === "熔铸火焰") names.push("熔铸火焰图标.png");
   if (!item?.wikiFile && item?.iconCached !== false && item?.kind === "echo" && gameKey === "wuthering" && name === "戍关长刃·定军") names.push("Mc wiki weapon 戍关长刃·定军.png");
@@ -834,6 +969,12 @@ function relicSetIconCandidates(gameKey, value) {
 function relicSetIconMarkup(gameKey, value, className = "set-picker-icon") {
   const label = relicSetLabel(gameKey, value) || "套装";
   return iconMarkup(relicSetIconCandidates(gameKey, value), label, roleInitial(label), className);
+}
+
+function relicSlotIconMarkup(gameKey, slotKey, setValue = "", className = "set-picker-icon") {
+  const label = relicSlotLabel(gameKey, slotKey) || "部位";
+  const candidates = relicPieceIconCandidates(gameKey, { slot: slotKey, sets: [setValue] });
+  return iconMarkup(candidates, label, roleInitial(label), className);
 }
 
 function bindIconFallbacks(root = document) {
@@ -885,20 +1026,26 @@ function inventoryItems(gameKey = state.activeGame) {
   return inventoryForGame(gameKey).items;
 }
 
-function roleEquipmentItem(role, kind) {
+function roleGearIds(role) {
+  if (!role) return {};
+  if (!role.gearIds || typeof role.gearIds !== "object" || Array.isArray(role.gearIds)) role.gearIds = {};
+  return role.gearIds;
+}
+
+function roleEquipmentItem(role, kind, slotKey = "") {
   if (!role) return null;
-  const field = kind === "weapon" ? "weaponId" : "gearId";
+  const field = kind === "weapon" ? "weaponId" : slotKey ? roleGearIds(role)[slotKey] : role.gearId;
   const items = inventoryItems();
-  const byId = role[field] && items.find((item) => item.id === role[field] && item.kind === kind);
+  const byId = field && items.find((item) => item.id === field && item.kind === kind && (!slotKey || item.slot === slotKey));
   if (byId) return byId;
   const name = kind === "weapon" ? role.weapon?.name : role.gear?.set;
   if (!name || name === "未配置") return null;
   if (kind === "relic") {
     const targetSets = role.gear?.sets || parseLegacyBuildTarget(state.activeGame, name).sets;
-    return items.find((item) => item.kind === kind && (
-      item.name === name
-      || (targetSets.length && targetSets.every((set, index) => !set || item.sets?.[index] === set))
-    )) || null;
+    return items.find((item) => item.kind === kind
+      && (!slotKey || item.slot === slotKey)
+      && (item.name === name
+        || (targetSets.length && targetSets.every((set, index) => !set || item.sets?.[index] === set)))) || null;
   }
   return items.find((item) => item.kind === kind && item.name === name) || null;
 }
@@ -922,11 +1069,15 @@ function normalizeRelicItem(gameKey, raw, fallbackName = "") {
     const value = normalizeStatValue(slot, sourceStats[slot.key]);
     if (value) mainStats[slot.key] = value;
   });
-  const defaultName = sets.filter(Boolean).map((value) => relicSetLabel(gameKey, value)).join(" + ");
+  const slot = normalizeRelicSlot(gameKey, raw?.slot ?? raw?.part ?? raw?.position) || inferRelicSlotFromName(gameKey, sourceName);
+  const defaultName = slot
+    ? relicItemDefaultName(gameKey, sets, slot)
+    : sets.filter(Boolean).map((value) => relicSetLabel(gameKey, value)).join(" + ");
   const name = raw?.customName ? sourceName : (defaultName || sourceName || "未命名遗器");
   return {
     ...raw,
     name,
+    slot,
     sets,
     set: sets.filter(Boolean).join(" + "),
     mainStats,
@@ -942,7 +1093,40 @@ function ensureInventory(data) {
     if (!game) return;
     game.characters = Array.isArray(game.characters) ? game.characters : [];
     game.teams = Array.isArray(game.teams) ? game.teams : [];
-    const existing = Array.isArray(game.inventory?.items) ? game.inventory.items : [];
+    const rawExisting = Array.isArray(game.inventory?.items) ? game.inventory.items : [];
+    const existing = [];
+    rawExisting.forEach((raw, index) => {
+      if (!raw) return;
+      if (isRelicKind(gameKey, raw.kind) && !normalizeRelicSlot(gameKey, raw.slot ?? raw.part ?? raw.position)) {
+        const normalized = normalizeRelicItem(gameKey, raw);
+        const sourceId = raw.id || `${gameKey}-inventory-${index}`;
+        if (!isLegacyStatOnlyRelic(gameKey, raw) && normalized.sets.some(Boolean)) {
+          relicSlots(gameKey).forEach((slot, slotIndex) => {
+            const sourceStats = raw.mainStats || raw.main_stats || {};
+            const mainStats = {};
+            if (!slot.fixed && sourceStats[slot.key]) mainStats[slot.key] = sourceStats[slot.key];
+            existing.push({
+              ...raw,
+              id: `${sourceId}-${slot.key}`,
+              aggregateId: sourceId,
+              name: relicItemDefaultName(gameKey, normalized.sets, slot.key) || `${normalized.name}·${slot.label}`,
+              customName: false,
+              wikiFile: "",
+              slot: slot.key,
+              sets: normalized.sets,
+              set: normalized.set,
+              mainStats,
+              score: Array.isArray(raw.pieces) && raw.pieces[slotIndex] != null ? raw.pieces[slotIndex] : null,
+              aggregateScore: raw.score == null ? null : Number(raw.score),
+              pieces: [],
+              holderId: raw.holderId || null,
+            });
+          });
+          return;
+        }
+      }
+      existing.push(raw);
+    });
     const items = [];
     const usedIds = new Set();
     const addItem = (raw, fallbackId, holderId = null) => {
@@ -970,10 +1154,12 @@ function ensureInventory(data) {
       items.push(item);
       return item;
     };
-    const findAvailable = (role, kind, name, sets = []) => {
-      const requestedId = kind === "weapon" ? role.weaponId : role.gearId;
-      return (requestedId && existing.find((item) => item.id === requestedId && item.kind === kind && (!item.holderId || item.holderId === role.id)))
-        || existing.find((item) => item.kind === kind && (!item.holderId || item.holderId === role.id) && (
+    const findAvailable = (role, kind, name, sets = [], slotKey = "") => {
+      const requestedId = kind === "weapon" ? role.weaponId : slotKey ? roleGearIds(role)[slotKey] : role.gearId;
+      const isMatchingSlot = (item) => kind !== "relic" || !slotKey || item.slot === slotKey;
+      const isAvailable = (item) => item.kind === kind && isMatchingSlot(item) && (!item.holderId || item.holderId === role.id);
+      return (requestedId && existing.find((item) => isAvailable(item) && (item.id === requestedId || item.aggregateId === requestedId)))
+        || existing.find((item) => isAvailable(item) && (
           item.name === name
           || (kind === "relic" && sets.length && sets.every((set, index) => !set || item.sets?.[index] === set))
         ));
@@ -1001,37 +1187,78 @@ function ensureInventory(data) {
       const gearName = role.gear?.set;
       const legacyGear = isRelicKind(gameKey, gearKind) ? normalizeRelicItem(gameKey, role.gear || {}, gearName) : null;
       const gearSets = legacyGear?.sets || [];
-      const canonicalGearName = legacyGear?.name || gearName;
+      const canonicalGearName = gearSets.filter(Boolean).map((value) => relicSetLabel(gameKey, value)).join(" + ") || legacyGear?.name || gearName;
       const hasRelicSet = gearSets.some(Boolean);
-      const hasExplicitRelicItem = Boolean(role.gearId || role.gear?.customName || role.gear?.name || (Array.isArray(role.gear?.sets) && role.gear.sets.some(Boolean)));
+      const hasExplicitRelicItem = Boolean(role.gearId || Object.values(roleGearIds(role)).some(Boolean) || role.gear?.customName || role.gear?.name || (Array.isArray(role.gear?.sets) && role.gear.sets.some(Boolean)));
       const legacyTargetOnly = isLegacyStatOnlyRelic(gameKey, role.gear);
       const canCreateRelicItem = !isRelicKind(gameKey, gearKind) || (!legacyTargetOnly && (hasRelicSet || hasExplicitRelicItem));
       const legacyScore = role.gear?.score ?? null;
       const legacyPieces = Array.isArray(role.gear?.pieces) ? role.gear.pieces : [];
       if (canonicalGearName && canonicalGearName !== "未配置" && canCreateRelicItem) {
-        const source = findAvailable(role, gearKind, canonicalGearName, gearSets) || {
-          id: `${gameKey}-${gearKind}-${role.id}`,
-          kind: gearKind,
-          name: canonicalGearName,
-          rarity: 5,
-          score: role.gear?.score,
-          pieces: role.gear?.pieces,
-          iconCached: true,
-        };
-        source.kind = gearKind;
-        if (legacyGear) Object.assign(source, legacyGear);
-        const item = addItem(source, `${gameKey}-${gearKind}-${role.id}`, role.id);
-        role.gearId = item.id;
-        role.gear = {
-          set: item.name,
-          sets: item.sets || [],
-          score: item.score,
-          pieces: item.pieces,
-          mainStats: item.mainStats || {},
-          substats: item.substats || "",
-        };
+        if (isRelicKind(gameKey, gearKind)) {
+          const assigned = {};
+          relicSlots(gameKey).forEach((slot, slotIndex) => {
+            const source = findAvailable(role, gearKind, canonicalGearName, gearSets, slot.key) || {
+              id: `${gameKey}-${gearKind}-${role.id}-${slot.key}`,
+              kind: gearKind,
+              name: relicItemDefaultName(gameKey, gearSets, slot.key) || `${canonicalGearName}·${slot.label}`,
+              rarity: 5,
+              score: legacyPieces[slotIndex] ?? null,
+              pieces: [],
+              sets: gearSets,
+              set: gearSets.join(" + "),
+              slot: slot.key,
+              mainStats: {},
+              substats: legacyGear?.substats || "",
+              iconCached: true,
+            };
+            source.kind = gearKind;
+            source.slot = slot.key;
+            source.aggregateId = source.aggregateId || role.gearId || `${gameKey}-${gearKind}-${role.id}`;
+            const sourceStats = source.mainStats || {};
+            source.mainStats = {};
+            if (!slot.fixed && (sourceStats[slot.key] || legacyGear?.mainStats?.[slot.key])) {
+              source.mainStats[slot.key] = sourceStats[slot.key] || legacyGear.mainStats[slot.key];
+            }
+            source.substats = source.substats || legacyGear?.substats || "";
+            source.score = source.score ?? legacyPieces[slotIndex] ?? null;
+            const item = addItem(source, `${gameKey}-${gearKind}-${role.id}-${slot.key}`, role.id);
+            item.holderId = role.id;
+            assigned[slot.key] = item.id;
+          });
+          role.gearIds = assigned;
+          role.gearId = assigned[relicSlots(gameKey)[0]?.key] || null;
+          role.gear = {
+            ...(role.gear || {}),
+            set: gearSets.filter(Boolean).join(" + ") || canonicalGearName,
+            sets: gearSets,
+            score: legacyScore,
+            pieces: legacyPieces,
+            mainStats: legacyGear?.mainStats || role.gear?.mainStats || {},
+            substats: legacyGear?.substats || role.gear?.substats || "",
+          };
+        } else {
+          const source = findAvailable(role, gearKind, canonicalGearName) || {
+            id: `${gameKey}-${gearKind}-${role.id}`,
+            kind: gearKind,
+            name: canonicalGearName,
+            rarity: 5,
+            score: role.gear?.score,
+            pieces: role.gear?.pieces,
+            iconCached: true,
+          };
+          source.kind = gearKind;
+          const item = addItem(source, `${gameKey}-${gearKind}-${role.id}`, role.id);
+          role.gearId = item.id;
+          role.gear = {
+            set: item.name,
+            score: item.score,
+            pieces: item.pieces,
+          };
+        }
       } else {
         role.gearId = null;
+        role.gearIds = {};
         role.gear = {
           ...(role.gear || {}),
           set: "未配置",
@@ -1204,35 +1431,42 @@ function detailStat(label, value, suffix = "") {
 function equipmentSlots() {
   const game = meta();
   if (state.activeGame === "wuthering") return [{ kind: "echo", field: "gearId", label: game.equipmentLabel, symbol: "◌" }];
-  return [
-    { kind: "weapon", field: "weaponId", label: game.equipmentLabel, symbol: "◇" },
-    { kind: equipmentKindForGame(), field: "gearId", label: game.gearLabel, symbol: "✦" },
-  ];
+  const relicKind = equipmentKindForGame();
+  const relicSlotsForGame = isRelicKind(state.activeGame, relicKind)
+    ? relicSlots(state.activeGame).map((relicSlot) => ({
+      kind: relicKind,
+      field: `gearIds.${relicSlot.key}`,
+      slotKey: relicSlot.key,
+      label: relicSlot.label,
+      symbol: "✦",
+    }))
+    : [{ kind: relicKind, field: "gearId", label: game.gearLabel, symbol: "✦" }];
+  return [{ kind: "weapon", field: "weaponId", label: game.equipmentLabel, symbol: "◇" }, ...relicSlotsForGame];
 }
 
 function equipmentSelectMarkup(role, slot) {
-  const current = roleEquipmentItem(role, slot.kind);
-  const selectedId = role[slot.field] || current?.id || "";
-  const options = inventoryItems().filter((item) => item.kind === slot.kind).map((item) => {
+  const current = roleEquipmentItem(role, slot.kind, slot.slotKey);
+  const selectedId = slot.slotKey ? roleGearIds(role)[slot.slotKey] || current?.id || "" : role[slot.field] || current?.id || "";
+  const options = inventoryItems().filter((item) => item.kind === slot.kind && (!slot.slotKey || item.slot === slot.slotKey)).map((item) => {
     const holder = item.holderId && item.holderId !== role.id ? findRole(item.holderId) : null;
     const suffix = holder ? ` · ${holder.name}` : "";
     const lockSuffix = item.locked ? " · 已锁定" : "";
     const relicSuffix = isRelicKind(state.activeGame, item.kind)
-      ? ` · ${mainStatsCompact(state.activeGame, item.mainStats)}${item.score == null ? "" : ` · ${Number(item.score).toFixed(1).replace(".0", "")}分`}`
+      ? ` · ${relicItemStatSummary(state.activeGame, item)}${item.score == null ? "" : ` · ${Number(item.score).toFixed(1).replace(".0", "")}分`}`
       : "";
     const disabled = item.locked && item.id !== selectedId ? "disabled" : "";
     return `<option value="${escapeHtml(item.id)}" ${item.id === selectedId ? "selected" : ""} ${disabled}>${escapeHtml(item.name)}${escapeHtml(relicSuffix)}${escapeHtml(suffix)}${escapeHtml(lockSuffix)}</option>`;
   }).join("");
-  return `<label class="equipment-select-row"><span>${escapeHtml(slot.label)}</span><select data-equipment-field="${escapeHtml(slot.field)}" data-equipment-kind="${escapeHtml(slot.kind)}"><option value="">未选择</option>${options}</select></label>`;
+  return `<label class="equipment-select-row"><span>${escapeHtml(slot.label)}</span><select data-equipment-field="${escapeHtml(slot.field)}" data-equipment-kind="${escapeHtml(slot.kind)}" ${slot.slotKey ? `data-equipment-slot="${escapeHtml(slot.slotKey)}"` : ""}><option value="">未选择</option>${options}</select></label>`;
 }
 
 function equipmentLineMarkup(role, slot) {
-  const item = roleEquipmentItem(role, slot.kind);
+  const item = roleEquipmentItem(role, slot.kind, slot.slotKey);
   const fallback = item ? roleInitial(item.name) : slot.symbol;
   const icon = item ? inventoryIcon(item, "equipment-icon") : iconMarkup([], slot.label, fallback, "equipment-icon");
   let detail = "未配置";
   if (item && slot.kind === "weapon") detail = `${slot.label} · ${item.rarity || "—"} 星 · 精炼 ${item.refinement || "—"} · ${item.level || "—"}/${item.maxLevel || meta().levelMax}`;
-  else if (item && isRelicKind(state.activeGame, item.kind)) detail = `${slot.label} · ${mainStatsCompact(state.activeGame, item.mainStats)} · ${item.score == null ? "未评分" : `${Number(item.score).toFixed(1).replace(".0", "")} 分`}`;
+  else if (item && isRelicKind(state.activeGame, item.kind)) detail = `${slot.label} · ${relicItemStatSummary(state.activeGame, item)} · ${item.score == null ? "未评分" : `${Number(item.score).toFixed(1).replace(".0", "")} 分`}`;
   else if (item) detail = `${slot.label} · ${item.score == null ? "未评分" : `${Number(item.score).toFixed(1).replace(".0", "")} 分`}`;
   return `<div class="equipment-line">${icon}<span class="equipment-copy"><strong>${escapeHtml(item?.name || "未配置")}</strong><span>${escapeHtml(detail)}</span></span></div>`;
 }
@@ -1287,18 +1521,84 @@ function mainStatsCompact(gameKey, values) {
   return variableRelicSlots(gameKey).map((slot) => statShortForSlot(slot, values?.[slot.key])).filter(Boolean).join("") || "主词条未设";
 }
 
+function relicItemStatSummary(gameKey, item) {
+  const slot = findRelicSlot(gameKey, item?.slot);
+  if (slot) {
+    const value = slot.fixed?.value || item?.mainStats?.[slot.key];
+    return value ? statLabelForSlot(slot, value) : "主词条未设";
+  }
+  return mainStatsSummary(gameKey, item?.mainStats, true) || "主词条未设";
+}
+
 function relicAttributesMarkup(gameKey, item) {
   if (!isRelicKind(gameKey, item?.kind)) return "";
   const sets = (item.sets || []).filter(Boolean).map((value) => relicSetLabel(gameKey, value)).join(" + ") || item.set || item.name;
-  const mainStats = mainStatsSummary(gameKey, item.mainStats, true) || "尚未设置";
-  return `<div class="inventory-attribute-block"><div class="inventory-attribute-row"><span>套装</span><strong>${escapeHtml(sets)}</strong></div><div class="inventory-attribute-row"><span>主词条</span><strong>${escapeHtml(mainStats)}</strong></div><div class="inventory-attribute-row"><span>副词条</span><strong>${escapeHtml(item.substats || "手动填写")}</strong></div></div>`;
+  const mainStats = item.slot
+    ? relicItemStatSummary(gameKey, item)
+    : mainStatsSummary(gameKey, item.mainStats, true) || "尚未设置";
+  return `<div class="inventory-attribute-block"><div class="inventory-attribute-row"><span>套装</span><strong>${escapeHtml(sets)}</strong></div><div class="inventory-attribute-row"><span>部位</span><strong>${escapeHtml(relicSlotLabel(gameKey, item.slot))}</strong></div><div class="inventory-attribute-row"><span>主词条</span><strong>${escapeHtml(mainStats)}</strong></div><div class="inventory-attribute-row"><span>副词条</span><strong>${escapeHtml(item.substats || "手动填写")}</strong></div></div>`;
 }
 
-function clearRoleEquipment(role, kind) {
+function syncRoleGearSnapshot(role, gameKey = state.activeGame) {
+  if (!role || !isRelicKind(gameKey, equipmentKindForGame(gameKey))) return;
+  const kind = equipmentKindForGame(gameKey);
+  const ids = roleGearIds(role);
+  const config = relicConfig(gameKey);
+  const previous = role.gear || {};
+  const assigned = config.slots.map((slot) => ({ slot, item: inventoryItems(gameKey).find((entry) => entry.id === ids[slot.key] && entry.kind === kind) }));
+  const sets = Array(config.setFields.length).fill("");
+  const setSeen = Array(config.setFields.length).fill(false);
+  assigned.forEach(({ item }) => {
+    (item?.sets || []).forEach((value, index) => {
+      if (value && !setSeen[index]) {
+        sets[index] = value;
+        setSeen[index] = true;
+      }
+    });
+  });
+  if (!assigned.some(({ item }) => Boolean(item))) {
+    previous.sets?.forEach((value, index) => {
+      if (index < sets.length) sets[index] = value || "";
+    });
+  } else {
+    sets.forEach((value, index) => {
+      if (!value) sets[index] = previous.sets?.[index] || "";
+    });
+  }
+  const mainStats = {};
+  const pieces = config.slots.map((slot, index) => {
+    const item = assigned[index].item;
+    if (item?.mainStats?.[slot.key]) mainStats[slot.key] = item.mainStats[slot.key];
+    return item?.score ?? previous.pieces?.[index] ?? null;
+  });
+  const hasItems = assigned.some(({ item }) => Boolean(item));
+  const substats = assigned.find(({ item }) => item?.substats)?.item?.substats || previous.substats || "";
+  role.gear = {
+    ...previous,
+    set: hasItems ? sets.filter(Boolean).join(" + ") || "未配置" : "未配置",
+    sets: hasItems ? sets : [],
+    pieces: hasItems ? pieces : [],
+    mainStats: hasItems ? mainStats : {},
+    substats: hasItems ? substats : "",
+    score: hasItems ? previous.score : null,
+  };
+  role.gearId = assigned.find(({ item }) => item)?.item?.id || null;
+}
+
+function clearRoleEquipment(role, kind, slotKey = "") {
   if (!role) return;
   if (kind === "weapon") {
     role.weaponId = null;
     role.weapon = null;
+  } else if (isRelicKind(state.activeGame, kind)) {
+    const ids = roleGearIds(role);
+    const keys = slotKey ? [slotKey] : relicSlots(state.activeGame).map((slot) => slot.key);
+    keys.forEach((key) => {
+      const item = inventoryItems().find((entry) => entry.id === ids[key] && entry.kind === kind);
+      if (item && item.holderId === role.id) item.holderId = null;
+      delete ids[key];
+    });
+    syncRoleGearSnapshot(role);
   } else {
     role.gearId = null;
     role.gear = {
@@ -1313,12 +1613,12 @@ function clearRoleEquipment(role, kind) {
   }
 }
 
-function bindRoleEquipment(roleId, kind, itemId) {
+function bindRoleEquipment(roleId, kind, itemId, slotKey = "") {
   const role = findRole(roleId);
   if (!role) return;
   const items = inventoryItems();
-  const previous = roleEquipmentItem(role, kind);
-  const item = items.find((entry) => entry.id === itemId && entry.kind === kind) || null;
+  const previous = roleEquipmentItem(role, kind, slotKey);
+  const item = items.find((entry) => entry.id === itemId && entry.kind === kind && (!slotKey || entry.slot === slotKey)) || null;
   if (previous?.locked && previous.id !== item?.id) {
     showToast("当前装备已锁定，请先解锁");
     renderDetail();
@@ -1332,11 +1632,14 @@ function bindRoleEquipment(roleId, kind, itemId) {
   if (previous && previous.id !== item?.id) previous.holderId = null;
   if (item) {
     const previousHolder = item.holderId && item.holderId !== role.id ? findRole(item.holderId) : null;
-    if (previousHolder) clearRoleEquipment(previousHolder, kind);
+    if (previousHolder) clearRoleEquipment(previousHolder, kind, slotKey);
     item.holderId = role.id;
     if (kind === "weapon") {
       role.weaponId = item.id;
       role.weapon = { name: item.name, rarity: item.rarity, refinement: item.refinement, level: item.level || 0, maxLevel: item.maxLevel };
+    } else if (isRelicKind(state.activeGame, kind)) {
+      roleGearIds(role)[slotKey] = item.id;
+      syncRoleGearSnapshot(role);
     } else {
       role.gearId = item.id;
       role.gear = {
@@ -1349,7 +1652,7 @@ function bindRoleEquipment(roleId, kind, itemId) {
       };
     }
   } else {
-    clearRoleEquipment(role, kind);
+    clearRoleEquipment(role, kind, slotKey);
   }
   saveData("装备配置已保存");
   renderAll();
@@ -1450,7 +1753,8 @@ function filteredInventory() {
     const holder = item.holderId ? findRole(item.holderId) : null;
     const setText = item.sets?.map((value) => relicSetLabel(state.activeGame, value)).join(" ");
     const statText = mainStatsSummary(state.activeGame, item.mainStats, true);
-    const searchable = [item.name, setText, statText, item.substats, item.note, holder?.name, inventoryTypeLabel(item.kind)].filter(Boolean).join(" ").toLowerCase();
+    const slotText = isRelicKind(state.activeGame, item.kind) ? relicSlotLabel(state.activeGame, item.slot, "") : "";
+    const searchable = [item.name, setText, slotText, statText, item.substats, item.note, holder?.name, inventoryTypeLabel(item.kind)].filter(Boolean).join(" ").toLowerCase();
     return (state.inventoryKind === "all" || item.kind === state.inventoryKind) && (!query || searchable.includes(query));
   });
   result.sort((a, b) => {
@@ -1467,7 +1771,7 @@ function inventoryCard(item) {
   const stat = item.kind === "weapon"
     ? `Lv.${item.level || 0}/${item.maxLevel || meta().levelMax} · 精炼 ${item.refinement || 1}`
     : isRelicKind(state.activeGame, item.kind)
-      ? `${mainStatsCompact(state.activeGame, item.mainStats)} · ${scoreText}`
+      ? `${relicSlotLabel(state.activeGame, item.slot, "未指定部位")} · ${relicItemStatSummary(state.activeGame, item)} · ${scoreText}`
       : item.score == null ? "尚未评分" : scoreText;
   return `<article class="inventory-item ${state.selectedInventoryId === item.id ? "is-selected" : ""}" data-inventory-id="${escapeHtml(item.id)}" tabindex="0" aria-label="查看 ${escapeHtml(item.name)}">
     ${inventoryIcon(item)}
@@ -1619,37 +1923,76 @@ function updateInventoryNameFromSet() {
   const fields = $("#inventoryRelicSetFields");
   if (!input || !fields) return;
   const values = $$("[data-inventory-set]", fields).map((select) => select.value).filter(Boolean);
-  const defaultName = values.map((value) => relicSetLabel(state.activeGame, value)).join(" + ");
+  const slotKey = $("#inventoryRelicSlotInput")?.value || "";
+  const defaultName = relicItemDefaultName(state.activeGame, values, slotKey)
+    || values.map((value) => relicSetLabel(state.activeGame, value)).join(" + ");
   if (input.dataset.autoName === "true" || !input.value.trim()) {
     input.value = defaultName;
     input.dataset.autoName = defaultName ? "true" : "false";
   }
 }
 
+function updateInventoryRelicSlotIcon() {
+  const host = $("[data-inventory-slot-icon]");
+  const slotKey = $("#inventoryRelicSlotInput")?.value || "";
+  const fields = $("#inventoryRelicSetFields");
+  const values = fields ? $$(`[data-inventory-set]`, fields).map((select) => select.value).filter(Boolean) : [];
+  if (!host) return;
+  host.innerHTML = slotKey
+    ? relicSlotIconMarkup(state.activeGame, slotKey, relicSetValueForSlot(state.activeGame, values, slotKey))
+    : relicSlotIconMarkup(state.activeGame, "");
+  bindIconFallbacks(host);
+}
+
+function renderInventoryRelicStatFields() {
+  const statFields = $("#inventoryRelicStatFields");
+  const slotKey = $("#inventoryRelicSlotInput")?.value || "";
+  const slot = relicSlots(state.activeGame).find((entry) => entry.key === slotKey);
+  if (!statFields) return;
+  if (!slot) {
+    statFields.innerHTML = `<div class="relic-slot-placeholder">先选择部位，再填写该部位的主词条</div>`;
+    return;
+  }
+  if (slot.fixed) {
+    statFields.innerHTML = `<div class="target-fixed-stat inventory-fixed-stat"><span>${escapeHtml(slot.label)}</span><strong>固定 · ${escapeHtml(slot.fixed.label)}</strong></div>`;
+    return;
+  }
+  statFields.innerHTML = `<label class="form-field"><span>${escapeHtml(slot.label)}主词条</span><select data-inventory-stat="${escapeHtml(slot.key)}"><option value="">未选择</option>${statOptionsForSlot(slot).map((option) => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join("")}</select></label>`;
+}
+
 function renderInventoryRelicFields() {
   const section = $("#inventoryRelicFields");
   const setFields = $("#inventoryRelicSetFields");
+  const slotFields = $("#inventoryRelicSlotFields");
   const statFields = $("#inventoryRelicStatFields");
   const kind = $("#inventoryKindInput")?.value;
   const config = isRelicKind(state.activeGame, kind) ? relicConfig(state.activeGame) : null;
-  if (!section || !setFields || !statFields) return;
+  if (!section || !setFields || !slotFields || !statFields) return;
   section.hidden = !config;
   if (!config) {
     setFields.innerHTML = "";
+    slotFields.innerHTML = "";
     statFields.innerHTML = "";
     return;
   }
   setFields.innerHTML = config.setFields.map((field, index) => `<label class="form-field"><span class="target-field-heading"><span>${escapeHtml(field.label)}</span><span data-inventory-set-icon="${index}">${relicSetIconMarkup(state.activeGame, "")}</span></span><select data-inventory-set="${index}">${relicSetOptionsMarkup(state.activeGame)}</select></label>`).join("");
-  const fixed = config.slots.filter((slot) => slot.fixed).map((slot) => `<div class="target-fixed-stat inventory-fixed-stat"><span>${escapeHtml(slot.label)}</span><strong>固定 · ${escapeHtml(slot.fixed.label)}</strong></div>`).join("");
-  const variable = config.slots.filter((slot) => !slot.fixed).map((slot) => `<label class="form-field"><span>${escapeHtml(slot.label)}</span><select data-inventory-stat="${escapeHtml(slot.key)}"><option value="">未选择</option>${statOptionsForSlot(slot).map((option) => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join("")}</select></label>`).join("");
-  statFields.innerHTML = fixed + variable;
+  slotFields.innerHTML = `<label class="form-field"><span class="target-field-heading"><span>部位</span><span data-inventory-slot-icon>${relicSlotIconMarkup(state.activeGame, "")}</span></span><select id="inventoryRelicSlotInput" name="inventoryRelicSlot">${relicSlotOptionsMarkup(state.activeGame)}</select></label>`;
+  renderInventoryRelicStatFields();
   $$("[data-inventory-set]", setFields).forEach((select) => select.addEventListener("change", (event) => {
     updateInventoryNameFromSet();
     const iconHost = $(`[data-inventory-set-icon="${event.target.dataset.inventorySet}"]`, setFields);
-    if (!iconHost) return;
-    iconHost.innerHTML = relicSetIconMarkup(state.activeGame, event.target.value);
-    bindIconFallbacks(iconHost);
+    if (iconHost) {
+      iconHost.innerHTML = relicSetIconMarkup(state.activeGame, event.target.value);
+      bindIconFallbacks(iconHost);
+    }
+    updateInventoryRelicSlotIcon();
   }));
+  $("#inventoryRelicSlotInput")?.addEventListener("change", () => {
+    updateInventoryNameFromSet();
+    renderInventoryRelicStatFields();
+    updateInventoryRelicSlotIcon();
+  });
+  bindIconFallbacks(section);
 }
 
 function openInventoryDialog() {
@@ -1673,15 +2016,18 @@ function readInventoryRelicForm(gameKey = state.activeGame) {
   const config = relicConfig(gameKey);
   if (!config) return null;
   const sets = config.setFields.map((field, index) => $(`[data-inventory-set="${index}"]`, $("#inventoryRelicSetFields"))?.value || "");
+  const slot = normalizeRelicSlot(gameKey, $("#inventoryRelicSlotInput")?.value || "");
   const mainStats = {};
-  variableRelicSlots(gameKey).forEach((slot) => {
-    const value = $(`[data-inventory-stat="${slot.key}"]`, $("#inventoryRelicStatFields"))?.value || "";
-    if (value) mainStats[slot.key] = normalizeStatValue(slot, value);
-  });
+  const selectedSlot = relicSlots(gameKey).find((entry) => entry.key === slot);
+  if (selectedSlot && !selectedSlot.fixed) {
+    const value = $(`[data-inventory-stat="${selectedSlot.key}"]`, $("#inventoryRelicStatFields"))?.value || "";
+    if (value) mainStats[selectedSlot.key] = normalizeStatValue(selectedSlot, value);
+  }
   return {
     sets,
+    slot,
     mainStats,
-    defaultName: sets.filter(Boolean).map((value) => relicSetLabel(gameKey, value)).join(" + "),
+    defaultName: relicItemDefaultName(gameKey, sets, slot) || sets.filter(Boolean).map((value) => relicSetLabel(gameKey, value)).join(" + "),
     substats: $("#inventorySubstatsInput").value.trim(),
   };
 }
@@ -1690,9 +2036,16 @@ function saveInventoryFromDialog() {
   const kind = $("#inventoryKindInput").value;
   const relicValues = isRelicKind(state.activeGame, kind) ? readInventoryRelicForm(state.activeGame) : null;
   let name = $("#inventoryNameInput").value.trim();
-  if (relicValues && !name) name = relicValues.defaultName;
+  if (relicValues) {
+    const selectedSet = relicSetValueForSlot(state.activeGame, relicValues.sets, relicValues.slot);
+    if (!relicValues.slot || !selectedSet) {
+      showToast("请选择套装和部位");
+      return false;
+    }
+    if (!name) name = relicValues.defaultName;
+  }
   if (!name || !kind) {
-    showToast(relicValues ? "请选择套装或填写条目名称" : "请填写装备名称和类型");
+    showToast(relicValues ? "请填写条目名称" : "请填写装备名称和类型");
     return false;
   }
   const levelText = $("#inventoryLevelInput").value.trim();
@@ -1713,6 +2066,7 @@ function saveInventoryFromDialog() {
     wikiFile: $("#inventoryWikiFileInput").value.trim(),
     note: $("#inventoryNoteInput").value.trim(),
     ...(relicValues ? {
+      slot: relicValues.slot,
       sets: relicValues.sets,
       set: relicValues.sets.filter(Boolean).join(" + "),
       mainStats: relicValues.mainStats,
@@ -1739,7 +2093,7 @@ function unassignInventory(itemId) {
   }
   if (item.holderId) {
     const holder = findRole(item.holderId);
-    if (holder) clearRoleEquipment(holder, item.kind);
+    if (holder) clearRoleEquipment(holder, item.kind, item.slot || "");
     item.holderId = null;
   }
   saveData("装备已卸下");
@@ -1917,7 +2271,7 @@ function bindEvents() {
     }
     const select = event.target.closest("[data-equipment-kind]");
     if (!select) return;
-    bindRoleEquipment(state.selectedRoleId, select.dataset.equipmentKind, select.value);
+    bindRoleEquipment(state.selectedRoleId, select.dataset.equipmentKind, select.value, select.dataset.equipmentSlot || "");
   });
   $("#closeDetailButton").addEventListener("click", () => $("#detailSurface").classList.remove("is-open"));
 
