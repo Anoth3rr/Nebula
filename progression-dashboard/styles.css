@@ -1612,8 +1612,15 @@ select:hover {
 
 .team-member .avatar {
   width: 100%;
-  height: 90px;
+  height: auto;
+  aspect-ratio: var(--avatar-ratio, 1 / 1);
   margin-bottom: 8px;
+}
+
+.team-member .avatar > .icon-frame img,
+.mini-avatar > .icon-frame img {
+  object-fit: contain;
+  background: var(--avatar-bg, #353b4a);
 }
 
 .team-member .avatar span {
@@ -2617,7 +2624,7 @@ select:hover {
   }
 
   .team-member .avatar {
-    height: 105px;
+    height: auto;
   }
 
   .modal form {

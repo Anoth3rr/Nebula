@@ -972,7 +972,8 @@ function iconMarkup(candidates, alt, fallback, className = "") {
 }
 
 function roleAvatar(role, className = "avatar") {
-  return `<div class="${className}" style="--avatar-bg:${safeColor(role?.color)}">${iconMarkup(roleIconCandidates(state.activeGame, role), role?.name || "角色", roleInitial(role?.name), "avatar-icon")}</div>`;
+  const avatarRatio = state.activeGame === "starrail" ? "160 / 188" : "1 / 1";
+  return `<div class="${className}" style="--avatar-bg:${safeColor(role?.color)};--avatar-ratio:${avatarRatio}">${iconMarkup(roleIconCandidates(state.activeGame, role), role?.name || "角色", roleInitial(role?.name), "avatar-icon")}</div>`;
 }
 
 function inventoryIcon(item, className = "inventory-icon") {
@@ -1755,7 +1756,7 @@ function renderTeamDetail() {
   state.selectedTeamId = team.id;
   const memberRoles = (team.members || []).map(findRole).filter(Boolean);
   const score = teamReadiness(team);
-  const memberCards = memberRoles.map((role) => `<article class="team-member" data-open-role="${escapeHtml(role.id)}" tabindex="0">${roleAvatar(role)}<div class="team-member-name">${escapeHtml(role.name)}</div><div class="team-member-meta"><span>${escapeHtml(formatLevel(role))}</span><span style="color:${readinessColor(roleReadiness(role))}">${roleReadiness(role)}%</span></div></article>`).join("");
+  const memberCards = memberRoles.map((role) => `<article class="team-member" data-open-role="${escapeHtml(role.id)}" tabindex="0">${roleAvatar(role, "avatar team-member-avatar")}<div class="team-member-name">${escapeHtml(role.name)}</div><div class="team-member-meta"><span>${escapeHtml(formatLevel(role))}</span><span style="color:${readinessColor(roleReadiness(role))}">${roleReadiness(role)}%</span></div></article>`).join("");
   container.innerHTML = `<div class="team-detail-content"><div class="team-detail-header"><div><p class="eyebrow">ACTIVE SQUAD</p><h3>${escapeHtml(team.name)}</h3><p>${escapeHtml(team.note || "未添加备注")}</p></div><div class="team-detail-actions"><button class="icon-button subtle" type="button" data-edit-team="${escapeHtml(team.id)}" title="编辑配队详情" aria-label="编辑配队详情">✎</button><button class="icon-button subtle" type="button" data-delete-team="${escapeHtml(team.id)}" title="删除配队" aria-label="删除配队">⌫</button></div></div>
     <div class="team-score-block"><strong>${score}%</strong><div class="team-score-copy"><span>队伍完成度</span><span>${memberRoles.length} 位角色 · ${escapeHtml(meta().name)}</span></div></div>
     <div class="team-members">${memberCards || `<div class="empty-state"><strong>尚未选择角色</strong></div>`}</div>
