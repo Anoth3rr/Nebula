@@ -1489,16 +1489,29 @@ select:hover {
 
 .team-mini-avatars {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 3px;
   min-width: 0;
+  max-height: 58px;
+  overflow: hidden;
   margin-top: 5px;
+}
+
+.team-choice-summary {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.team-no-choices {
+  color: var(--text-muted);
+  font-size: 10px;
 }
 
 .mini-avatar {
   display: grid;
   width: 25px;
   height: 28px;
-  margin-right: -5px;
   place-items: center;
   border: 1px solid var(--surface);
   border-radius: 4px;
@@ -1506,6 +1519,11 @@ select:hover {
   color: rgba(255, 255, 255, 0.9);
   font-size: 9px;
   font-weight: 700;
+}
+
+.mini-avatar.is-backup {
+  border-style: dashed;
+  opacity: 0.64;
 }
 
 .team-card-score {
@@ -1627,6 +1645,13 @@ select:hover {
   font-size: 18px;
 }
 
+.team-position-label {
+  margin-bottom: 5px;
+  color: var(--accent-strong);
+  font-size: 10px;
+  font-weight: 650;
+}
+
 .team-member-name {
   overflow: hidden;
   color: var(--text-soft);
@@ -1643,6 +1668,68 @@ select:hover {
   margin-top: 4px;
   color: var(--text-muted);
   font-size: 10px;
+}
+
+.team-member-backups {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.team-member-backup-label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.team-member-backup-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.team-backup-chip {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 9px;
+  text-align: left;
+}
+
+.team-backup-chip:hover {
+  color: var(--accent-strong);
+}
+
+.team-backup-chip .mini-avatar {
+  width: 21px;
+  height: 23px;
+  flex: 0 0 auto;
+}
+
+.team-backup-chip > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-member-empty {
+  display: flex;
+  min-height: 180px;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.team-member-empty-copy {
+  color: var(--text-muted);
+  font-size: 11px;
 }
 
 .synergy-row {
@@ -1683,6 +1770,12 @@ select:hover {
   background: var(--surface-raised);
   color: var(--text);
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.48);
+}
+
+#teamDialog,
+#teamEditDialog {
+  max-height: min(820px, calc(100vh - 24px));
+  overflow: auto;
 }
 
 .role-edit-modal {
@@ -1821,6 +1914,34 @@ select:hover {
   margin-top: 16px;
 }
 
+.team-position-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.team-position-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.team-position-heading strong {
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.team-position-heading span {
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
 .slot-field {
   display: grid;
   gap: 5px;
@@ -1831,6 +1952,18 @@ select:hover {
 .slot-field select {
   width: 100%;
   min-width: 0;
+}
+
+.slot-field .team-backup-select {
+  height: auto;
+  min-height: 96px;
+  padding: 6px 7px;
+  appearance: auto;
+  overflow: auto;
+}
+
+.team-backup-select option {
+  padding: 3px 4px;
 }
 
 .modal-actions {

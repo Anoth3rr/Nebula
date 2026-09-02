@@ -1,7 +1,7 @@
 /* global Blob, URL */
 
 const STORAGE_KEY = "nebula-progression-workbench-v1";
-const DATA_VERSION = 4;
+const DATA_VERSION = 5;
 const MAX_TALENT = 13;
 
 const gameMeta = {
@@ -536,6 +536,41 @@ function teams() {
 
 function findRole(id) {
   return roles().find((role) => role.id === id) || null;
+}
+
+const TEAM_POSITION_COUNT = 4;
+
+function normalizeTeamPosition(raw) {
+  if (typeof raw === "string") return { primary: raw.trim(), backups: [] };
+  const primary = String(raw?.primary ?? raw?.primaryId ?? raw?.main ?? "").trim();
+  const backupSource = raw?.backups ?? raw?.backupIds ?? raw?.alternates ?? raw?.alternatives ?? [];
+  const backups = Array.isArray(backupSource)
+    ? backupSource.map((id) => String(id || "").trim()).filter((id) => id && id !== primary)
+    : [];
+  return { primary, backups: unique(backups) };
+}
+
+function normalizeTeamPositions(team) {
+  if (!team || typeof team !== "object") return [];
+  const source = Array.isArray(team.positions)
+    ? team.positions
+    : (Array.isArray(team.members) ? team.members.map((id) => ({ primary: id, backups: [] })) : []);
+  const count = Math.max(TEAM_POSITION_COUNT, source.length);
+  const positions = Array.from({ length: count }, (_, index) => normalizeTeamPosition(source[index]));
+  team.positions = positions;
+  team.members = unique(positions.flatMap((position) => [position.primary, ...position.backups]));
+  return positions;
+}
+
+function ensureTeams(data) {
+  if (!data?.games) return data;
+  Object.values(data.games).forEach((game) => {
+    if (!game) return;
+    game.teams = Array.isArray(game.teams) ? game.teams : [];
+    game.teams.forEach((team) => normalizeTeamPositions(team));
+  });
+  data.version = Math.max(Number(data.version) || 1, DATA_VERSION);
+  return data;
 }
 
 function allRolesForGame(gameKey) {
@@ -1326,6 +1361,7 @@ function loadData() {
     state.data = clone(sampleData);
   }
   ensureInventory(state.data);
+  ensureTeams(state.data);
   state.activeGame = state.data.activeGame && state.data.games[state.data.activeGame] ? state.data.activeGame : "genshin";
   state.selectedRoleId = null;
   state.selectedTeamId = state.data.games[state.activeGame]?.teams?.[0]?.id || null;
@@ -1720,13 +1756,30 @@ function renderDetail() {
 }
 
 function teamReadiness(team) {
-  const memberRoles = (team.members || []).map(findRole).filter(Boolean);
-  return Math.round(average(memberRoles.map(roleReadiness)));
+  const primaryRoles = teamChoiceEntries(team)
+    .filter((entry) => entry.kind === "primary")
+    .map((entry) => entry.role);
+  return Math.round(average(primaryRoles.map(roleReadiness)));
 }
 
-function miniAvatar(role) {
+function teamChoiceEntries(team) {
+  return normalizeTeamPositions(team).flatMap((position, index) => {
+    const primary = findRole(position.primary);
+    const backups = position.backups.map(findRole).filter(Boolean);
+    return [
+      ...(primary ? [{ role: primary, position: index + 1, kind: "primary" }] : []),
+      ...backups.map((role) => ({ role, position: index + 1, kind: "backup" })),
+    ];
+  });
+}
+
+function teamBackupCount(team) {
+  return teamChoiceEntries(team).filter((entry) => entry.kind === "backup").length;
+}
+
+function miniAvatar(role, className = "") {
   if (!role) return `<span class="mini-avatar" title="未选择">＋</span>`;
-  return `<span class="mini-avatar" style="--avatar-bg:${safeColor(role.color)}" title="${escapeHtml(role.name)}">${iconMarkup(roleIconCandidates(state.activeGame, role), role.name, roleInitial(role.name), "mini-avatar-icon")}</span>`;
+  return `<span class="mini-avatar ${className}" style="--avatar-bg:${safeColor(role.color)}" title="${escapeHtml(role.name)}">${iconMarkup(roleIconCandidates(state.activeGame, role), role.name, roleInitial(role.name), "mini-avatar-icon")}</span>`;
 }
 
 function renderTeamList() {
@@ -1735,9 +1788,12 @@ function renderTeamList() {
   $("#teamLibraryCount").textContent = `${currentTeams.length} 组`;
   list.innerHTML = currentTeams.map((team) => {
     const score = teamReadiness(team);
-    const memberRoles = (team.members || []).map(findRole);
+    const choices = teamChoiceEntries(team);
+    const primaryCount = choices.filter((entry) => entry.kind === "primary").length;
+    const backupCount = choices.filter((entry) => entry.kind === "backup").length;
+    const choiceSummary = `${primaryCount} 主选${backupCount ? ` · ${backupCount} 备选` : ""}`;
     return `<article class="team-card ${team.id === state.selectedTeamId ? "is-selected" : ""}" data-team-id="${escapeHtml(team.id)}" tabindex="0">
-      <div class="team-card-copy"><strong>${escapeHtml(team.name)}</strong><span>${escapeHtml(team.note || "未添加备注")}</span><div class="team-mini-avatars">${memberRoles.map(miniAvatar).join("")}</div></div>
+      <div class="team-card-copy"><strong>${escapeHtml(team.name)}</strong><span>${escapeHtml(team.note || "未添加备注")}</span><div class="team-mini-avatars" aria-label="${escapeHtml(choiceSummary)}">${choices.map((entry) => miniAvatar(entry.role, entry.kind === "backup" ? "is-backup" : "")).join("") || `<span class="team-no-choices">未选择角色</span>`}</div><div class="team-choice-summary">${escapeHtml(choiceSummary)}</div></div>
       <div class="team-card-score"><strong>${score}%</strong><span>完成度</span></div>
     </article>`;
   }).join("");
@@ -1754,11 +1810,23 @@ function renderTeamDetail() {
     return;
   }
   state.selectedTeamId = team.id;
-  const memberRoles = (team.members || []).map(findRole).filter(Boolean);
+  const positions = normalizeTeamPositions(team);
+  const primaryCount = positions.filter((position) => position.primary && findRole(position.primary)).length;
+  const backupCount = teamBackupCount(team);
   const score = teamReadiness(team);
-  const memberCards = memberRoles.map((role) => `<article class="team-member" data-open-role="${escapeHtml(role.id)}" tabindex="0">${roleAvatar(role, "avatar team-member-avatar")}<div class="team-member-name">${escapeHtml(role.name)}</div><div class="team-member-meta"><span>${escapeHtml(formatLevel(role))}</span><span style="color:${readinessColor(roleReadiness(role))}">${roleReadiness(role)}%</span></div></article>`).join("");
+  const memberCards = positions.map((position, index) => {
+    const primary = findRole(position.primary);
+    const backups = position.backups.map(findRole).filter(Boolean);
+    const backupMarkup = backups.length
+      ? `<div class="team-member-backups"><span class="team-member-backup-label">备选</span><div class="team-member-backup-list">${backups.map((role) => `<button class="team-backup-chip" type="button" data-open-role="${escapeHtml(role.id)}" title="打开${escapeHtml(role.name)}详情">${miniAvatar(role, "is-backup")}<span>${escapeHtml(role.name)}</span></button>`).join("")}</div></div>`
+      : "";
+    if (!primary) {
+      return `<article class="team-member team-member-empty"><div class="team-position-label">位置 ${index + 1}</div><div class="team-member-empty-copy">未设置主选</div>${backupMarkup}</article>`;
+    }
+    return `<article class="team-member" data-open-role="${escapeHtml(primary.id)}" tabindex="0">${roleAvatar(primary, "avatar team-member-avatar")}<div class="team-position-label">位置 ${index + 1} · 主选</div><div class="team-member-name">${escapeHtml(primary.name)}</div><div class="team-member-meta"><span>${escapeHtml(formatLevel(primary))}</span><span style="color:${readinessColor(roleReadiness(primary))}">${roleReadiness(primary)}%</span></div>${backupMarkup}</article>`;
+  }).join("");
   container.innerHTML = `<div class="team-detail-content"><div class="team-detail-header"><div><p class="eyebrow">ACTIVE SQUAD</p><h3>${escapeHtml(team.name)}</h3><p>${escapeHtml(team.note || "未添加备注")}</p></div><div class="team-detail-actions"><button class="icon-button subtle" type="button" data-edit-team="${escapeHtml(team.id)}" title="编辑配队详情" aria-label="编辑配队详情">✎</button><button class="icon-button subtle" type="button" data-delete-team="${escapeHtml(team.id)}" title="删除配队" aria-label="删除配队">⌫</button></div></div>
-    <div class="team-score-block"><strong>${score}%</strong><div class="team-score-copy"><span>队伍完成度</span><span>${memberRoles.length} 位角色 · ${escapeHtml(meta().name)}</span></div></div>
+    <div class="team-score-block"><strong>${score}%</strong><div class="team-score-copy"><span>队伍完成度</span><span>${positions.length} 个位置 · ${primaryCount} 位主选${backupCount ? ` · ${backupCount} 个备选` : ""} · ${escapeHtml(meta().name)}</span></div></div>
     <div class="team-members">${memberCards || `<div class="empty-state"><strong>尚未选择角色</strong></div>`}</div>
     <div class="synergy-row">${(team.tags || []).map((tag) => `<span class="synergy-tag">${escapeHtml(tag)}</span>`).join("")}</div></div>`;
   bindIconFallbacks(container);
@@ -1979,19 +2047,64 @@ function saveRoleFromDialog() {
   return true;
 }
 
-function renderTeamSlotGrid(selector, selectedMembers = []) {
+function renderTeamSlotGrid(selector, selectedPositions = []) {
   const grid = $(selector);
   if (!grid) return;
   const roster = roles();
-  const selected = Array.isArray(selectedMembers) ? selectedMembers : [];
-  const selectedOnly = selected
+  const selected = Array.isArray(selectedPositions) ? selectedPositions.map(normalizeTeamPosition) : [];
+  const selectedIds = selected.flatMap((position) => [position.primary, ...position.backups]);
+  const selectedOnly = unique(selectedIds)
     .filter((id) => id && !roster.some((role) => role.id === id))
     .map((id) => ({ id, name: `未知角色 (${id})` }));
   const optionsRoles = [...roster, ...selectedOnly];
-  grid.innerHTML = Array.from({ length: Math.max(4, selected.length) }, (_, index) => {
-    const selectedId = selected[index] || "";
-    return `<label class="slot-field"><span>位置 ${index + 1}</span><select data-team-slot="${index}"><option value="">未选择</option>${optionsRoles.map((role) => `<option value="${escapeHtml(role.id)}" ${role.id === selectedId ? "selected" : ""}>${escapeHtml(role.name)}</option>`).join("")}</select></label>`;
+  grid.innerHTML = Array.from({ length: Math.max(TEAM_POSITION_COUNT, selected.length) }, (_, index) => {
+    const position = selected[index] || { primary: "", backups: [] };
+    const backupSet = new Set(position.backups);
+    const primaryOptions = `<option value="">未选择</option>${optionsRoles.map((role) => `<option value="${escapeHtml(role.id)}" ${role.id === position.primary ? "selected" : ""}>${escapeHtml(role.name)}</option>`).join("")}`;
+    const backupOptions = optionsRoles.map((role) => `<option value="${escapeHtml(role.id)}" ${backupSet.has(role.id) && role.id !== position.primary ? "selected" : ""}>${escapeHtml(role.name)}</option>`).join("");
+    return `<div class="team-position-field" data-team-position="${index}">
+      <div class="team-position-heading"><strong>位置 ${index + 1}</strong><span>主选 + 备选</span></div>
+      <label class="slot-field"><span>主选</span><select data-team-slot="${index}" data-team-primary="${index}" aria-label="位置 ${index + 1} 主选">${primaryOptions}</select></label>
+      <label class="slot-field"><span>备选（可多选）</span><select class="team-backup-select" data-team-backups="${index}" aria-label="位置 ${index + 1} 备选角色" multiple size="4">${backupOptions}</select></label>
+    </div>`;
   }).join("");
+}
+
+function readTeamPositions(selector) {
+  const grid = $(selector);
+  if (!grid) return [];
+  return $$('[data-team-position]', grid).map((slot) => {
+    const primary = $("[data-team-primary]", slot)?.value || "";
+    const backupSelect = $("[data-team-backups]", slot);
+    const backups = Array.from(backupSelect?.selectedOptions || [])
+      .map((option) => option.value)
+      .filter((id) => id && id !== primary);
+    return { primary, backups: unique(backups) };
+  });
+}
+
+function validateTeamPositions(positions) {
+  const unassignedIndex = positions.findIndex((position) => !position.primary && position.backups.length);
+  if (unassignedIndex >= 0) {
+    showToast(`位置 ${unassignedIndex + 1} 请先选择主选角色`);
+    return false;
+  }
+  const primaryCount = positions.filter((position) => position.primary).length;
+  if (primaryCount < 2) {
+    showToast("至少选择 2 位主选角色");
+    return false;
+  }
+  const selectedIds = positions.flatMap((position) => [position.primary, ...position.backups]).filter(Boolean);
+  if (new Set(selectedIds).size !== selectedIds.length) {
+    showToast("同一角色不能重复加入主选或备选");
+    return false;
+  }
+  return true;
+}
+
+function setTeamPositions(team, positions) {
+  team.positions = positions.map((position) => normalizeTeamPosition(position));
+  team.members = unique(team.positions.flatMap((position) => [position.primary, ...position.backups]));
 }
 
 function openTeamDialog() {
@@ -2006,21 +2119,14 @@ function openTeamDialog() {
 function saveTeamFromDialog() {
   const name = $("#teamNameInput").value.trim();
   const note = $("#teamNoteInput").value.trim();
-  const members = $$("[data-team-slot]", $("#teamSlotGrid")).map((select) => select.value).filter(Boolean);
+  const positions = readTeamPositions("#teamSlotGrid");
   if (!name) {
     showToast("请先填写方案名称");
     return false;
   }
-  if (members.length < 2) {
-    showToast("至少选择 2 位角色");
-    return false;
-  }
-  const uniqueMembers = [...new Set(members)];
-  if (uniqueMembers.length !== members.length) {
-    showToast("同一角色不能重复加入配队");
-    return false;
-  }
-  const team = { id: `${state.activeGame}-team-${Date.now()}`, name, note, members: uniqueMembers, tags: ["自定义", meta().name] };
+  if (!validateTeamPositions(positions)) return false;
+  const team = { id: `${state.activeGame}-team-${Date.now()}`, name, note, positions, members: [], tags: ["自定义", meta().name] };
+  setTeamPositions(team, positions);
   activeGame().teams = activeGame().teams || [];
   activeGame().teams.unshift(team);
   state.selectedTeamId = team.id;
@@ -2040,7 +2146,7 @@ function openTeamEditDialog(teamId = state.selectedTeamId) {
   $("#teamEditNameInput").value = team.name || "";
   $("#teamEditNoteInput").value = team.note || "";
   $("#teamEditTagsInput").value = Array.isArray(team.tags) ? team.tags.join(", ") : String(team.tags || "");
-  renderTeamSlotGrid("#teamEditSlotGrid", team.members || []);
+  renderTeamSlotGrid("#teamEditSlotGrid", team.positions || team.members || []);
   if (typeof dialog.showModal === "function") dialog.showModal();
   else dialog.setAttribute("open", "");
 }
@@ -2056,24 +2162,16 @@ function saveTeamFromEditDialog() {
     return false;
   }
   const name = $("#teamEditNameInput").value.trim();
-  const members = $$('[data-team-slot]', $("#teamEditSlotGrid")).map((select) => select.value).filter(Boolean);
+  const positions = readTeamPositions("#teamEditSlotGrid");
   if (!name) {
     showToast("请先填写方案名称");
     return false;
   }
-  if (members.length < 2) {
-    showToast("至少选择 2 位角色");
-    return false;
-  }
-  const uniqueMembers = [...new Set(members)];
-  if (uniqueMembers.length !== members.length) {
-    showToast("同一角色不能重复加入配队");
-    return false;
-  }
+  if (!validateTeamPositions(positions)) return false;
   team.name = name;
   team.note = $("#teamEditNoteInput").value.trim();
   team.tags = parseTeamTags($("#teamEditTagsInput").value);
-  team.members = uniqueMembers;
+  setTeamPositions(team, positions);
   state.selectedTeamId = team.id;
   saveData("配队详情已保存");
   renderStats();
@@ -2442,6 +2540,7 @@ function importData(file) {
       if (!imported?.games?.genshin) throw new Error("invalid");
       state.data = imported;
       ensureInventory(state.data);
+      ensureTeams(state.data);
       state.activeGame = imported.activeGame && imported.games[imported.activeGame] ? imported.activeGame : "genshin";
       state.selectedRoleId = null;
       state.selectedInventoryId = null;
@@ -2468,6 +2567,7 @@ function resetSample() {
   if (!window.confirm("恢复后会覆盖当前本地修改，是否继续？")) return;
   state.data = clone(sampleData);
   ensureInventory(state.data);
+  ensureTeams(state.data);
   state.activeGame = "genshin";
   state.selectedRoleId = null;
   state.selectedInventoryId = null;

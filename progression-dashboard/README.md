@@ -25,7 +25,7 @@ python -m http.server 4173
 - 角色详情可从当前游戏仓库选择装备；换手时会自动解除原角色绑定，仓库条目会显示当前持有角色。
 - 角色、武器和套装图标使用 BWiki 文件，示例图标已缓存到 `assets/wiki/`，离线时自动回退为首字母。
 - 详情面板可直接调整等级与重复命座，并自动保存到本机；“编辑角色”可修改名称、星级、元素/属性、定位、等级上限、技能等级、头像底色和角色备注。
-- 配队方案支持查看成员完成度、新建、编辑、删除、导出和成员跳转；“编辑配队”可修改名称、备注、标签和成员。
+- 配队方案支持查看位置完成度、新建、编辑、删除、导出和角色跳转；每个位置可设置一名主选与多个备选角色，“编辑配队”可修改名称、备注、标签和位置角色。
 - 顶部按钮支持 JSON 导入与导出，便于后续接入 Nebula 的本地数据服务。
 
 ## 统一数据模型
@@ -44,7 +44,9 @@ games.<game>.characters[]
   role, element, note
 
 games.<game>.teams[]
-  id, name, note, members[], tags[]
+  id, name, note, positions[], members[], tags[]
+  positions[]: { primary, backups[] }  # 每个位置一名主选，可有多个备选
+  members[] 为 positions[] 展开后的兼容字段（主选在前，备选随后）
 
 games.<game>.inventory.items[]
   id, kind, name, rarity, level, maxLevel, refinement
