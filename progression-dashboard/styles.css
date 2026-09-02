@@ -1837,6 +1837,48 @@ select:hover {
   border-color: rgba(226, 181, 109, 0.58);
 }
 
+.role-element-field {
+  grid-column: 1 / -1;
+}
+
+.element-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 1px;
+}
+
+.element-preset {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 27px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+}
+
+.element-preset:hover,
+.element-preset.is-selected {
+  border-color: var(--preset-color);
+  background: rgba(255, 255, 255, 0.075);
+  color: var(--text);
+}
+
+.element-preset-swatch {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--preset-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--preset-color) 18%, transparent);
+}
+
 .form-field textarea {
   width: 100%;
   min-height: 55px;

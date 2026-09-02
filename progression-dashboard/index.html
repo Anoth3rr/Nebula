@@ -292,13 +292,21 @@
             <span>星级</span>
             <input id="roleEditRarityInput" name="roleEditRarity" type="number" min="1" max="6" step="1" required />
           </label>
-          <label class="form-field">
-            <span>元素 / 属性</span>
-            <input id="roleEditElementInput" name="roleEditElement" maxlength="12" placeholder="例如：火、量子" />
+          <label class="form-field role-element-field">
+            <span id="roleEditElementLabel">元素 / 属性</span>
+            <input id="roleEditElementInput" name="roleEditElement" list="roleEditElementOptions" maxlength="12" placeholder="选择或填写属性" autocomplete="off" />
+            <datalist id="roleEditElementOptions"></datalist>
+            <div class="element-presets" id="roleEditElementPresets" role="group" aria-label="元素属性预设"></div>
           </label>
           <label class="form-field">
             <span>定位</span>
             <input id="roleEditRoleInput" name="roleEditRole" maxlength="12" placeholder="例如：主C、辅助" />
+          </label>
+          <label class="form-field" id="roleEditPathField" hidden>
+            <span>命途</span>
+            <select id="roleEditPathInput" name="roleEditPath">
+              <option value="">未设置</option>
+            </select>
           </label>
           <label class="form-field">
             <span>当前等级</span>

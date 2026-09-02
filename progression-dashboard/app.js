@@ -1,7 +1,7 @@
 /* global Blob, URL */
 
 const STORAGE_KEY = "nebula-progression-workbench-v1";
-const DATA_VERSION = 6;
+const DATA_VERSION = 7;
 const MAX_TALENT = 13;
 
 const gameMeta = {
@@ -58,6 +58,43 @@ const gameMeta = {
     talentLabels: ["主属性", "副属性"],
   },
 };
+
+// The colors follow the familiar in-game element palettes and are used as
+// sensible defaults for new role avatars.
+const roleElementPresets = {
+  genshin: [
+    { value: "风", color: "#74c2a8", aliases: ["风元素", "Anemo"] },
+    { value: "冰", color: "#9fdfff", aliases: ["冰元素", "Cryo"] },
+    { value: "火", color: "#ef7a58", aliases: ["火元素", "Pyro"] },
+    { value: "水", color: "#4c9be8", aliases: ["水元素", "Hydro"] },
+    { value: "雷", color: "#b77bff", aliases: ["雷元素", "Electro"] },
+    { value: "草", color: "#8ccf60", aliases: ["草元素", "Dendro"] },
+    { value: "岩", color: "#d8ad5a", aliases: ["岩元素", "Geo"] },
+  ],
+  starrail: [
+    { value: "物理", color: "#d8d8df", aliases: ["物理属性", "Physical"] },
+    { value: "火", color: "#ef735f", aliases: ["火属性", "Fire"] },
+    { value: "冰", color: "#9bd8f5", aliases: ["冰属性", "Ice"] },
+    { value: "雷", color: "#b47bea", aliases: ["雷属性", "Lightning"] },
+    { value: "风", color: "#65c6b5", aliases: ["风属性", "Wind"] },
+    { value: "量子", color: "#7776e8", aliases: ["量子属性", "Quantum"] },
+    { value: "虚数", color: "#e8c96d", aliases: ["虚数属性", "Imaginary"] },
+  ],
+};
+
+// These are the current playable character path labels used by the official
+// Star Rail UI.  Keep the values in Chinese so exported records stay readable.
+const starrailPathOptions = [
+  "欢愉",
+  "记忆",
+  "巡猎",
+  "虚无",
+  "毁灭",
+  "丰饶",
+  "存护",
+  "同谐",
+  "智识",
+];
 
 const wikiBases = {
   genshin: "https://wiki.biligame.com/ys/Special:FilePath/",
@@ -373,6 +410,7 @@ const makeRole = (id, name, rarity, duplicate, level, weapon, weaponRarity, weap
   note: note || "",
   role: role || "未分类",
   element: element || "",
+  path: extra.path || "",
   color: color || "#4a5265",
   ...extra,
 });
@@ -517,6 +555,103 @@ function escapeHtml(value) {
 
 function safeColor(value, fallback = "#4a5265") {
   return /^#[0-9a-f]{3,8}$/i.test(String(value || "")) ? value : fallback;
+}
+
+function normalizeRoleLabel(value) {
+  return String(value ?? "").trim().replace(/\s+/g, "");
+}
+
+function roleElementPreset(gameKey, value) {
+  const normalized = normalizeRoleLabel(value).replace(/(元素|属性)$/u, "");
+  if (!normalized) return null;
+  return (roleElementPresets[gameKey] || []).find((preset) => [preset.value, ...(preset.aliases || [])]
+    .some((alias) => normalizeRoleLabel(alias).replace(/(元素|属性)$/u, "") === normalized)) || null;
+}
+
+function roleElementColor(gameKey, value) {
+  return roleElementPreset(gameKey, value)?.color || "";
+}
+
+function roleColor(role, gameKey = state.activeGame) {
+  return safeColor(role?.color, roleElementColor(gameKey, role?.element) || "#4a5265");
+}
+
+function rolePathValue(role) {
+  return String(role?.path || role?.fate || role?.pathway || role?.["命途"] || "").trim();
+}
+
+function normalizeRoleMetadata(gameKey, role) {
+  if (!role || typeof role !== "object") return role;
+  if (!role.path) role.path = rolePathValue(role);
+  const preset = roleElementPreset(gameKey, role.element);
+  if (preset) {
+    role.element = preset.value;
+    if (!/^#[0-9a-f]{6}$/i.test(String(role.color || ""))) role.color = preset.color;
+  }
+  if (gameKey === "starrail" && role.path) {
+    const canonicalPath = starrailPathOptions.find((path) => normalizeRoleLabel(path) === normalizeRoleLabel(role.path));
+    if (canonicalPath) role.path = canonicalPath;
+  }
+  return role;
+}
+
+function updateRoleElementPresetState(value = "") {
+  const container = $("#roleEditElementPresets");
+  if (!container) return;
+  const selectedValue = roleElementPreset(state.activeGame, value)?.value || normalizeRoleLabel(value);
+  $$('[data-role-element]', container).forEach((button) => {
+    const selected = normalizeRoleLabel(button.dataset.roleElement) === selectedValue;
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+}
+
+function renderRoleElementPresets(currentValue = "") {
+  const input = $("#roleEditElementInput");
+  const datalist = $("#roleEditElementOptions");
+  const container = $("#roleEditElementPresets");
+  const presets = roleElementPresets[state.activeGame] || [];
+  if (datalist) {
+    datalist.innerHTML = presets.map((preset) => `<option value="${escapeHtml(preset.value)}"></option>`).join("");
+  }
+  if (container) {
+    container.hidden = !presets.length;
+    container.innerHTML = presets.map((preset) => `<button class="element-preset" type="button" data-role-element="${escapeHtml(preset.value)}" style="--preset-color:${safeColor(preset.color)}" title="选择${escapeHtml(preset.value)}${state.activeGame === "genshin" ? "元素" : "属性"}"><span class="element-preset-swatch" aria-hidden="true"></span><span>${escapeHtml(preset.value)}</span></button>`).join("");
+  }
+  if (input) {
+    input.placeholder = state.activeGame === "genshin" ? "选择或填写元素" : state.activeGame === "starrail" ? "选择或填写属性" : "例如：气动、衍射";
+    input.setAttribute("aria-label", state.activeGame === "genshin" ? "元素" : state.activeGame === "starrail" ? "属性" : "元素或属性");
+  }
+  updateRoleElementPresetState(currentValue);
+}
+
+function renderRolePathOptions(currentValue = "") {
+  const field = $("#roleEditPathField");
+  const select = $("#roleEditPathInput");
+  if (!field || !select) return;
+  const visible = state.activeGame === "starrail";
+  field.hidden = !visible;
+  const current = String(currentValue || "").trim();
+  const options = [...starrailPathOptions];
+  if (current && !options.includes(current)) options.push(current);
+  select.innerHTML = `<option value="">未设置</option>${options.map((path) => `<option value="${escapeHtml(path)}">${escapeHtml(path)}</option>`).join("")}`;
+  select.value = current;
+}
+
+function renderRoleEditorMetadata(elementValue = "", pathValue = "") {
+  const label = $("#roleEditElementLabel");
+  if (label) label.textContent = state.activeGame === "genshin" ? "元素" : state.activeGame === "starrail" ? "属性" : "元素 / 属性";
+  renderRoleElementPresets(elementValue);
+  renderRolePathOptions(pathValue);
+}
+
+function applyRoleElementPreset() {
+  const input = $("#roleEditElementInput");
+  if (!input) return null;
+  const preset = roleElementPreset(state.activeGame, input.value);
+  if (preset) $("#roleEditColorInput").value = safeColor(roleElementColor(state.activeGame, input.value), $("#roleEditColorInput").value);
+  updateRoleElementPresetState(input.value);
+  return preset;
 }
 
 function activeGame() {
@@ -1012,7 +1147,7 @@ function iconMarkup(candidates, alt, fallback, className = "") {
 
 function roleAvatar(role, className = "avatar") {
   const avatarRatio = state.activeGame === "starrail" ? "160 / 188" : "1 / 1";
-  return `<div class="${className}" style="--avatar-bg:${safeColor(role?.color)};--avatar-ratio:${avatarRatio}">${iconMarkup(roleIconCandidates(state.activeGame, role), role?.name || "角色", roleInitial(role?.name), "avatar-icon")}</div>`;
+  return `<div class="${className}" style="--avatar-bg:${roleColor(role)};--avatar-ratio:${avatarRatio}">${iconMarkup(roleIconCandidates(state.activeGame, role), role?.name || "角色", roleInitial(role?.name), "avatar-icon")}</div>`;
 }
 
 function inventoryIcon(item, className = "inventory-icon") {
@@ -1225,6 +1360,7 @@ function ensureInventory(data) {
         ));
     };
     game.characters.forEach((role) => {
+      normalizeRoleMetadata(gameKey, role);
       normalizeBuildTarget(gameKey, role);
       const weaponName = role.weapon?.name;
       if (weaponName && weaponName !== "未配置") {
@@ -1431,6 +1567,7 @@ function filteredRoles() {
       role.note,
       role.role,
       role.element,
+      rolePathValue(role),
     ].filter(Boolean).join(" ").toLowerCase();
     const queryMatch = !query || searchable.includes(query);
     const rarityMatch = state.rarity === "all" || String(role.rarity) === state.rarity;
@@ -1451,7 +1588,7 @@ function roleCard(role) {
   const game = meta();
   const talentText = (role.talents || []).slice(0, 4).map((talent) => `<span class="talent-chip">${escapeHtml(talent)}</span>`).join("");
   const duplicate = Number(role.duplicate) || 0;
-  const roleSubline = [role.element, role.role, getEquipmentName(role)].filter(Boolean).join(" · ");
+  const roleSubline = roleIdentityParts(role, true).join(" · ");
   const targetSummary = buildTargetSummary(role, state.activeGame);
   return `<article class="roster-item ${state.layout === "compact" ? "compact" : ""} ${state.selectedRoleId === role.id ? "is-selected" : ""}" data-role-id="${escapeHtml(role.id)}" tabindex="0" aria-label="查看 ${escapeHtml(role.name)}">
     ${roleAvatar(role)}
@@ -1470,6 +1607,15 @@ function roleCard(role) {
     </div>
     <div class="score-block"><span class="score-value" style="--score-color:${readinessColor(readiness)}">${displayScore(role)}</span><span class="status-label">${escapeHtml(status.label)}</span></div>
   </article>`;
+}
+
+function roleIdentityParts(role, includeEquipment = false) {
+  const parts = [role?.element];
+  const path = state.activeGame === "starrail" ? rolePathValue(role) : "";
+  if (path) parts.push(`命途 ${path}`);
+  parts.push(role?.role);
+  if (includeEquipment) parts.push(getEquipmentName(role));
+  return parts.filter(Boolean);
 }
 
 function renderRoster() {
@@ -1733,7 +1879,8 @@ function renderDetail() {
   const readiness = roleReadiness(role);
   const duplicate = Number(role.duplicate) || 0;
   const talentMax = talentMaxForGame();
-  const detailSubline = [stars(role.rarity), role.element, role.role].filter(Boolean).join(" · ");
+  const detailSubline = [stars(role.rarity), ...roleIdentityParts(role)].filter(Boolean).join(" · ");
+  const pathStat = state.activeGame === "starrail" && rolePathValue(role) ? detailStat("命途", rolePathValue(role)) : "";
   const talentRows = (role.talents || []).length
     ? role.talents.map((value, index) => `<div class="metric-line"><span>${escapeHtml(game.talentLabels[index] || `技能 ${index + 1}`)}</span><strong>${escapeHtml(value)}</strong></div><div class="progress-track"><div class="progress-fill" style="--bar-color:${safeColor(game.accent)};width:${Math.round((Number(value) / talentMax) * 100)}%"></div></div>`).join("")
     : `<div class="role-subline">技能数据尚未录入</div>`;
@@ -1747,6 +1894,7 @@ function renderDetail() {
       ${detailStat(game.duplicateLabel, duplicate ? `+${duplicate}` : "未解锁")}
       ${detailStat(game.scoreLabel, displayScore(role))}
       ${detailStat("完成度", `${readiness}%`)}
+      ${pathStat}
     </div><div class="detail-progress-row"><div class="metric-line"><span>整体完成度</span><strong>${readiness}%</strong></div><div class="progress-track"><div class="progress-fill" style="--bar-color:${readinessColor(readiness)};width:${readiness}%"></div></div></div></div>
     <div class="detail-section"><div class="detail-section-title"><span>技能 / 节点</span><span>当前等级</span></div><div class="editable-controls">${talentRows}</div></div>
     ${buildTargetMarkup(role, state.activeGame)}
@@ -1783,7 +1931,7 @@ function teamBackupCount(team) {
 
 function miniAvatar(role, className = "") {
   if (!role) return `<span class="mini-avatar" title="未选择">＋</span>`;
-  return `<span class="mini-avatar ${className}" style="--avatar-bg:${safeColor(role.color)}" title="${escapeHtml(role.name)}">${iconMarkup(roleIconCandidates(state.activeGame, role), role.name, roleInitial(role.name), "mini-avatar-icon")}</span>`;
+  return `<span class="mini-avatar ${className}" style="--avatar-bg:${roleColor(role)}" title="${escapeHtml(role.name)}">${iconMarkup(roleIconCandidates(state.activeGame, role), role.name, roleInitial(role.name), "mini-avatar-icon")}</span>`;
 }
 
 function renderTeamList() {
@@ -2021,11 +2169,13 @@ function openRoleEditDialog(roleId = state.selectedRoleId) {
   $("#roleEditMaxLevelInput").value = maxLevel;
   $("#roleEditDuplicateLabel").textContent = game.duplicateLabel;
   $("#roleEditDuplicateInput").value = clamp(Number(role.duplicate) || 0, 0, 6);
-  $("#roleEditColorInput").value = /^#[0-9a-f]{6}$/i.test(String(role.color || "")) ? role.color : "#4a5265";
+  $("#roleEditColorInput").value = roleColor(role);
   $("#roleEditWikiFileInput").value = role.wikiFile || "";
+  $("#roleEditPathInput").value = rolePathValue(role);
   $("#roleEditTalentHint").textContent = `0-${talentMax} 级`;
   $("#roleEditTalentGrid").innerHTML = roleEditTalentMarkup(role);
   $("#roleEditNoteInput").value = role.note || "";
+  renderRoleEditorMetadata(role.element || "", rolePathValue(role));
   if (typeof dialog.showModal === "function") dialog.showModal();
   else dialog.setAttribute("open", "");
 }
@@ -2048,9 +2198,11 @@ function openRoleCreateDialog() {
   $("#roleEditDuplicateInput").value = 0;
   $("#roleEditColorInput").value = safeColor(game.accent, "#4a5265");
   $("#roleEditWikiFileInput").value = "";
+  $("#roleEditPathInput").value = "";
   $("#roleEditTalentHint").textContent = `0-${talentMaxForGame()} 级`;
   $("#roleEditTalentGrid").innerHTML = roleEditTalentMarkup({ talents: [] });
   $("#roleEditNoteInput").value = "";
+  renderRoleEditorMetadata("", "");
   if (typeof dialog.showModal === "function") dialog.showModal();
   else dialog.setAttribute("open", "");
 }
@@ -2064,10 +2216,13 @@ function readRoleDialogValues(existingRole = {}) {
   const maxLevel = clamp(Math.round(readNumber("#roleEditMaxLevelInput", Number(existingRole.maxLevel) || game.levelMax)), 1, 200);
   const talentInputs = $$('[data-role-edit-talent]', $("#roleEditTalentGrid"));
   const talentValues = talentInputs.map((input) => input.value.trim());
+  const elementValue = $("#roleEditElementInput").value.trim();
+  const elementPreset = roleElementPreset(state.activeGame, elementValue);
   return {
     name: $("#roleEditNameInput").value.trim(),
     rarity: clamp(Math.round(readNumber("#roleEditRarityInput", Number(existingRole.rarity) || 5)), 1, 6),
-    element: $("#roleEditElementInput").value.trim(),
+    element: elementPreset?.value || elementValue,
+    path: state.activeGame === "starrail" ? $("#roleEditPathInput").value.trim() : rolePathValue(existingRole),
     role: $("#roleEditRoleInput").value.trim() || "未分类",
     maxLevel,
     level: clamp(Math.round(readNumber("#roleEditLevelInput", Number(existingRole.level) || 1)), 1, maxLevel),
@@ -2897,6 +3052,15 @@ function bindEvents() {
     }
   });
   $("#newRoleButton").addEventListener("click", openRoleCreateDialog);
+  $("#roleEditElementInput").addEventListener("input", applyRoleElementPreset);
+  $("#roleEditElementInput").addEventListener("change", applyRoleElementPreset);
+  $("#roleEditElementPresets").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-role-element]");
+    if (!button) return;
+    $("#roleEditElementInput").value = button.dataset.roleElement || "";
+    applyRoleElementPreset();
+    $("#roleEditElementInput").focus();
+  });
   $("#newTeamButton").addEventListener("click", openTeamDialog);
   $("#teamForm").addEventListener("submit", (event) => {
     if (event.submitter?.value === "default") {
