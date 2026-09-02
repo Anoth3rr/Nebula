@@ -108,9 +108,12 @@
                       <p class="eyebrow">ROSTER</p>
                       <h3 id="rosterTitle">角色列表</h3>
                     </div>
-                    <div class="view-toggle" role="group" aria-label="角色列表视图">
-                      <button class="toggle-button is-selected" type="button" data-layout="list" title="列表视图">☷</button>
-                      <button class="toggle-button" type="button" data-layout="compact" title="紧凑视图">⊞</button>
+                    <div class="roster-header-actions">
+                      <div class="view-toggle" role="group" aria-label="角色列表视图">
+                        <button class="toggle-button is-selected" type="button" data-layout="list" title="列表视图">☷</button>
+                        <button class="toggle-button" type="button" data-layout="compact" title="紧凑视图">⊞</button>
+                      </div>
+                      <button class="button button-primary" type="button" id="newRoleButton"><span>＋</span>增加角色</button>
                     </div>
                   </div>
                   <div class="roster-toolbar">
@@ -275,10 +278,10 @@
       <form method="dialog" id="roleEditForm">
         <div class="modal-header">
           <div>
-            <p class="eyebrow">OPERATIVE PROFILE</p>
-            <h3>编辑角色</h3>
+            <p class="eyebrow" id="roleEditDialogEyebrow">OPERATIVE PROFILE</p>
+            <h3 id="roleEditDialogTitle">编辑角色</h3>
           </div>
-          <button class="icon-button subtle" value="cancel" type="submit" title="关闭" aria-label="关闭">×</button>
+          <button class="icon-button subtle" value="cancel" formnovalidate type="submit" title="关闭" aria-label="关闭">×</button>
         </div>
         <div class="form-grid">
           <label class="form-field">
@@ -313,6 +316,10 @@
             <span>头像底色</span>
             <input id="roleEditColorInput" name="roleEditColor" type="color" />
           </label>
+          <label class="form-field role-wiki-field">
+            <span>Wiki 头像文件名（可选）</span>
+            <input id="roleEditWikiFileInput" name="roleEditWikiFile" maxlength="120" placeholder="例如：无背景-角色-角色名.png" />
+          </label>
         </div>
         <section class="edit-talent-section">
           <div class="form-section-heading"><span>技能 / 节点等级</span><span id="roleEditTalentHint">按当前游戏填写</span></div>
@@ -323,7 +330,7 @@
           <textarea id="roleEditNoteInput" name="roleEditNote" maxlength="180" rows="3" placeholder="记录角色定位、循环或培养备注"></textarea>
         </label>
         <div class="modal-actions">
-          <button class="button button-quiet" value="cancel" type="submit">取消</button>
+          <button class="button button-quiet" value="cancel" formnovalidate type="submit">取消</button>
           <button class="button button-primary" id="saveRoleEditButton" value="default" type="submit">保存角色</button>
         </div>
       </form>

@@ -1,7 +1,7 @@
 /* global Blob, URL */
 
 const STORAGE_KEY = "nebula-progression-workbench-v1";
-const DATA_VERSION = 5;
+const DATA_VERSION = 6;
 const MAX_TALENT = 13;
 
 const gameMeta = {
@@ -494,6 +494,7 @@ const state = {
   layout: "list",
   toastTimer: null,
   editingRoleId: null,
+  roleDialogMode: "edit",
   editingTeamId: null,
   editingInventoryId: null,
 };
@@ -976,7 +977,10 @@ function roleIconCandidates(gameKey, role) {
   else if (gameKey === "endfield") names = [`${name}头像.png`];
   else names = [`角色 ${name} 头像.png`];
   const urlForFile = isSampleRole(role) ? wikiImageUrl : wikiFileUrl;
-  return unique(names.map((fileName) => urlForFile(gameKey, fileName)));
+  const explicit = role?.wikiFile
+    ? [wikiImageUrl(gameKey, role.wikiFile), wikiFileUrl(gameKey, role.wikiFile)]
+    : [];
+  return unique([...explicit, ...names.map((fileName) => urlForFile(gameKey, fileName))]);
 }
 
 function inventoryIconCandidates(gameKey, item) {
@@ -1983,11 +1987,28 @@ function roleEditTalentMarkup(role) {
   }).join("");
 }
 
+function roleWikiPlaceholder(gameKey = state.activeGame) {
+  if (gameKey === "genshin") return "无背景-角色-角色名.png";
+  if (gameKey === "starrail") return "角色名竖版头像.png";
+  if (gameKey === "endfield") return "角色名头像.png";
+  return "角色 角色名 头像.png";
+}
+
+function setRoleDialogMode(mode) {
+  const creating = mode === "create";
+  $("#roleEditDialogEyebrow").textContent = creating ? "NEW OPERATIVE" : "OPERATIVE PROFILE";
+  $("#roleEditDialogTitle").textContent = creating ? "增加角色" : "编辑角色";
+  $("#saveRoleEditButton").textContent = creating ? "增加角色" : "保存角色";
+  $("#roleEditWikiFileInput").placeholder = `默认：${roleWikiPlaceholder()}`;
+}
+
 function openRoleEditDialog(roleId = state.selectedRoleId) {
   const role = findRole(roleId);
   const dialog = $("#roleEditDialog");
   if (!role || !dialog) return;
   state.editingRoleId = role.id;
+  state.roleDialogMode = "edit";
+  setRoleDialogMode("edit");
   const game = meta();
   const talentMax = talentMaxForGame();
   const maxLevel = Number(role.maxLevel) || game.levelMax;
@@ -2001,6 +2022,7 @@ function openRoleEditDialog(roleId = state.selectedRoleId) {
   $("#roleEditDuplicateLabel").textContent = game.duplicateLabel;
   $("#roleEditDuplicateInput").value = clamp(Number(role.duplicate) || 0, 0, 6);
   $("#roleEditColorInput").value = /^#[0-9a-f]{6}$/i.test(String(role.color || "")) ? role.color : "#4a5265";
+  $("#roleEditWikiFileInput").value = role.wikiFile || "";
   $("#roleEditTalentHint").textContent = `0-${talentMax} 级`;
   $("#roleEditTalentGrid").innerHTML = roleEditTalentMarkup(role);
   $("#roleEditNoteInput").value = role.note || "";
@@ -2008,37 +2030,106 @@ function openRoleEditDialog(roleId = state.selectedRoleId) {
   else dialog.setAttribute("open", "");
 }
 
-function saveRoleFromDialog() {
-  const role = findRole(state.editingRoleId);
-  if (!role) {
-    showToast("未找到要编辑的角色");
-    return false;
-  }
-  const name = $("#roleEditNameInput").value.trim();
-  if (!name) {
-    showToast("请先填写角色名称");
-    return false;
-  }
+function openRoleCreateDialog() {
+  const dialog = $("#roleEditDialog");
+  if (!dialog) return;
+  const game = meta();
+  state.editingRoleId = null;
+  state.roleDialogMode = "create";
+  setRoleDialogMode("create");
+  $("#roleEditNameInput").value = "";
+  $("#roleEditRarityInput").value = 5;
+  $("#roleEditElementInput").value = "";
+  $("#roleEditRoleInput").value = "未分类";
+  $("#roleEditLevelInput").value = 1;
+  $("#roleEditLevelInput").max = "200";
+  $("#roleEditMaxLevelInput").value = game.levelMax;
+  $("#roleEditDuplicateLabel").textContent = game.duplicateLabel;
+  $("#roleEditDuplicateInput").value = 0;
+  $("#roleEditColorInput").value = safeColor(game.accent, "#4a5265");
+  $("#roleEditWikiFileInput").value = "";
+  $("#roleEditTalentHint").textContent = `0-${talentMaxForGame()} 级`;
+  $("#roleEditTalentGrid").innerHTML = roleEditTalentMarkup({ talents: [] });
+  $("#roleEditNoteInput").value = "";
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", "");
+}
+
+function readRoleDialogValues(existingRole = {}) {
   const game = meta();
   const readNumber = (selector, fallback) => {
     const value = Number($(selector).value);
     return Number.isFinite(value) ? value : fallback;
   };
-  const maxLevel = clamp(Math.round(readNumber("#roleEditMaxLevelInput", Number(role.maxLevel) || game.levelMax)), 1, 200);
-  role.name = name;
-  role.rarity = clamp(Math.round(readNumber("#roleEditRarityInput", Number(role.rarity) || 1)), 1, 6);
-  role.element = $("#roleEditElementInput").value.trim();
-  role.role = $("#roleEditRoleInput").value.trim() || "未分类";
-  role.maxLevel = maxLevel;
-  role.level = clamp(Math.round(readNumber("#roleEditLevelInput", Number(role.level) || 1)), 1, maxLevel);
-  role.duplicate = clamp(Math.round(readNumber("#roleEditDuplicateInput", Number(role.duplicate) || 0)), 0, 6);
-  role.color = safeColor($("#roleEditColorInput").value, role.color || "#4a5265");
+  const maxLevel = clamp(Math.round(readNumber("#roleEditMaxLevelInput", Number(existingRole.maxLevel) || game.levelMax)), 1, 200);
   const talentInputs = $$('[data-role-edit-talent]', $("#roleEditTalentGrid"));
   const talentValues = talentInputs.map((input) => input.value.trim());
-  role.talents = talentValues.every((value) => value === "")
-    ? []
-    : talentValues.map((value) => clamp(Math.round(Number(value) || 0), 0, talentMaxForGame()));
-  role.note = $("#roleEditNoteInput").value.trim();
+  return {
+    name: $("#roleEditNameInput").value.trim(),
+    rarity: clamp(Math.round(readNumber("#roleEditRarityInput", Number(existingRole.rarity) || 5)), 1, 6),
+    element: $("#roleEditElementInput").value.trim(),
+    role: $("#roleEditRoleInput").value.trim() || "未分类",
+    maxLevel,
+    level: clamp(Math.round(readNumber("#roleEditLevelInput", Number(existingRole.level) || 1)), 1, maxLevel),
+    duplicate: clamp(Math.round(readNumber("#roleEditDuplicateInput", Number(existingRole.duplicate) || 0)), 0, 6),
+    color: safeColor($("#roleEditColorInput").value, safeColor(existingRole.color, safeColor(game.accent))),
+    wikiFile: $("#roleEditWikiFileInput").value.trim(),
+    talents: talentValues.every((value) => value === "")
+      ? []
+      : talentValues.map((value) => clamp(Math.round(Number(value) || 0), 0, talentMaxForGame())),
+    note: $("#roleEditNoteInput").value.trim(),
+  };
+}
+
+function saveRoleFromDialog() {
+  const creating = state.roleDialogMode === "create";
+  const role = creating ? null : findRole(state.editingRoleId);
+  if (!creating && !role) {
+    showToast("未找到要编辑的角色");
+    return false;
+  }
+  const values = readRoleDialogValues(role || {});
+  if (!values.name) {
+    showToast("请先填写角色名称");
+    return false;
+  }
+  const normalizedName = values.name.toLocaleLowerCase();
+  const duplicateRole = roles().find((entry) => entry.id !== role?.id && String(entry.name || "").trim().toLocaleLowerCase() === normalizedName);
+  if (duplicateRole) {
+    showToast("当前游戏已有同名角色");
+    return false;
+  }
+  if (creating) {
+    const idBase = `${state.activeGame}-role-${Date.now()}`;
+    let id = idBase;
+    let suffix = 1;
+    while (roles().some((entry) => entry.id === id)) id = `${idBase}-${suffix++}`;
+    const newRole = {
+      id,
+      ...values,
+      weapon: null,
+      weaponId: null,
+      gear: { set: "未配置", sets: [], score: null, pieces: [], mainStats: {}, substats: "" },
+      gearId: null,
+      gearIds: {},
+    };
+    if (relicConfig(state.activeGame)) newRole.buildTarget = defaultBuildTarget(state.activeGame);
+    activeGame().characters = Array.isArray(activeGame().characters) ? activeGame().characters : [];
+    activeGame().characters.unshift(newRole);
+    state.selectedRoleId = newRole.id;
+    state.query = "";
+    state.rarity = "all";
+    state.status = "all";
+    $("#searchInput").value = "";
+    $("#rarityFilter").value = "all";
+    $("#statusFilter").value = "all";
+    saveData("角色已添加");
+    renderAll();
+    $("#roleEditDialog").close();
+    showToast("角色已添加");
+    return true;
+  }
+  Object.assign(role, values);
   state.selectedRoleId = role.id;
   saveData("角色详情已保存");
   renderAll();
@@ -2805,6 +2896,7 @@ function bindEvents() {
       showToast("配队已删除");
     }
   });
+  $("#newRoleButton").addEventListener("click", openRoleCreateDialog);
   $("#newTeamButton").addEventListener("click", openTeamDialog);
   $("#teamForm").addEventListener("submit", (event) => {
     if (event.submitter?.value === "default") {

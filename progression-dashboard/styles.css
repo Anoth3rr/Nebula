@@ -682,6 +682,13 @@ a {
   font-weight: 620;
 }
 
+.roster-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .view-toggle {
   display: inline-flex;
   gap: 3px;
@@ -2453,6 +2460,10 @@ select:hover {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0 10px;
+}
+
+.role-wiki-field {
+  grid-column: 1 / -1;
 }
 
 .form-field select {
