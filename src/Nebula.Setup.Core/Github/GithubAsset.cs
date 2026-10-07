@@ -30,7 +30,10 @@ public class GithubAsset
     public string ContentType { get; set; }
 
     [JsonPropertyName("size")]
-    public int Size { get; set; }
+    public long Size { get; set; }
+
+    [JsonPropertyName("digest")]
+    public string? Digest { get; set; }
 
     [JsonPropertyName("download_count")]
     public int DownloadCount { get; set; }

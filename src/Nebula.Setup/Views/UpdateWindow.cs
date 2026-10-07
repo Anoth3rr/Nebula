@@ -257,6 +257,10 @@ public class UpdateWindow : WindowBase
             StackPanel_UpdateProgress.IsVisible = false;
             ProgressRing_Update.IsVisible = false;
             Button_Launch.IsVisible = true;
+            if (config.GetValue<bool>("Restart"))
+            {
+                Launch();
+            }
         }
         catch (Exception ex)
         {

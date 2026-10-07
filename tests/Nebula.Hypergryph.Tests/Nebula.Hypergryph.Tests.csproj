@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Nebula.Core/Nebula.Core.csproj" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Compile Include="../../src/Nebula/Features/Hypergryph/HypergryphService.cs" Link="HypergryphService.cs" />
+    <None Update="Fixtures/*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

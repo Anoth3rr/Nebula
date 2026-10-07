@@ -1,8 +1,8 @@
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
-using NuGet.Versioning;
 using Nebula.Features.Update;
 using Nebula.Frameworks;
+using Nebula.Setup.Core.Github;
 using System;
 using System.Threading.Tasks;
 
@@ -34,9 +34,38 @@ public sealed partial class AboutSetting : PageBase
             if (SetProperty(ref field, value))
             {
                 AppConfig.EnablePreviewRelease = value;
+                AppConfig.LastUpdateCheckTime = default;
             }
         }
     } = AppConfig.EnablePreviewRelease;
+
+    public bool AutomaticallyCheckForUpdates
+    {
+        get => AppConfig.AutomaticallyCheckForUpdates;
+        set
+        {
+            AppConfig.AutomaticallyCheckForUpdates = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool AutomaticallyInstallUpdates
+    {
+        get => AppConfig.AutomaticallyInstallUpdates;
+        set
+        {
+            AppConfig.AutomaticallyInstallUpdates = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool AutoRestartWhenUpdateFinished
+    {
+        get => AppConfig.AutoRestartWhenUpdateFinished;
+        set => AppConfig.AutoRestartWhenUpdateFinished = value;
+    }
+
+    public string? UpdateStatusText { get; set => SetProperty(ref field, value); }
 
 
     /// <summary>
@@ -62,16 +91,25 @@ public sealed partial class AboutSetting : PageBase
         {
             LatestVersion = null;
             UpdateErrorText = null;
+            UpdateStatusText = null;
             var release = await AppConfig.GetService<UpdateService>().GetLatestVersionAsync();
-            _ = NuGetVersion.TryParse(AppConfig.AppVersion, out var currentVersion);
-            _ = NuGetVersion.TryParse(release.Version, out var newVersion);
-            if (newVersion! > currentVersion!)
+            AppConfig.LastUpdateCheckTime = DateTimeOffset.UtcNow;
+            if (release is null)
             {
-                new UpdateWindow { NewVersion = release }.Activate();
+                UpdateStatusText = Lang.Update_NoPublishedRelease;
+                return;
+            }
+            var currentVersion = GithubReleaseSource.ParseVersion(AppConfig.AppVersion);
+            var newVersion = GithubReleaseSource.ParseVersion(release.Version);
+            if (currentVersion is null || newVersion is null)
+                throw new FormatException("Invalid application or release version.");
+            if (newVersion > currentVersion)
+            {
+                UpdateWindow.ShowRelease(release);
             }
             else
             {
-                LatestVersion = release.Version;
+                LatestVersion = AppConfig.AppVersion;
             }
         }
         catch (Exception ex)

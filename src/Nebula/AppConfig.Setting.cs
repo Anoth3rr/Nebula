@@ -214,6 +214,34 @@ public static partial class AppConfig
         set => DatabaseService.SetValue(nameof(CachedGameInfo), value);
     }
 
+    public static string? CachedHypergryphGameInfo
+    {
+        get => DatabaseService.GetValue<string>(nameof(CachedHypergryphGameInfo), out _, default);
+        set => DatabaseService.SetValue(nameof(CachedHypergryphGameInfo), value);
+    }
+
+    public static string? GetHypergryphExecutable(GameBiz biz) => GetValue<string>(default, $"HypergryphExecutable_{biz}");
+
+    public static void SetHypergryphExecutable(GameBiz biz, string value) => SetValue(value, $"HypergryphExecutable_{biz}");
+
+    public static bool AutomaticallyCheckForUpdates
+    {
+        get => GetValue(true);
+        set => SetValue(value);
+    }
+
+    public static bool AutomaticallyInstallUpdates
+    {
+        get => GetValue(false);
+        set => SetValue(value);
+    }
+
+    public static DateTimeOffset LastUpdateCheckTime
+    {
+        get => GetValue<DateTimeOffset>();
+        set => SetValue(value);
+    }
+
     /// <summary>
     /// 更新完成后自动重启
     /// </summary>

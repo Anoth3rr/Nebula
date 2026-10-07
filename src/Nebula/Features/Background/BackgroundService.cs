@@ -138,6 +138,10 @@ public class BackgroundService
             {
                 localBackgrounds.Add(GameBackground.FromCustomFile(localPath));
             }
+            var poster = AppConfig.GetService<Nebula.Features.Hypergryph.HypergryphService>()
+                .GetGameInfo(gameId.GameBiz)?.Display.Background?.Url;
+            if (Uri.TryCreate(poster, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
+                localBackgrounds.Add(GameBackground.FromPosterUrl(poster));
             return localBackgrounds;
         }
         GameBackgroundInfo backgroundInfo = await _hoYoPlayService.GetGameBackgroundAsync(gameId, cancellationToken);

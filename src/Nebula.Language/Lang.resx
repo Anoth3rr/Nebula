@@ -2714,4 +2714,19 @@ You are welcome to submit the exported data to the following repository:</value>
   <data name="GachaLogPage_DeleteCacheFolder" xml:space="preserve">
     <value>Delete Cache Folder</value>
   </data>
+  <data name="Update_AutomaticallyCheck" xml:space="preserve">
+    <value>Check for updates at startup and every hour</value>
+  </data>
+  <data name="Update_AutomaticallyInstall" xml:space="preserve">
+    <value>Automatically install new versions</value>
+  </data>
+  <data name="Update_AutomaticallyInstallDescription" xml:space="preserve">
+    <value>Downloads and verifies the update, then installs it. Installation may request administrator permission and close Nebula.</value>
+  </data>
+  <data name="Update_NoPublishedRelease" xml:space="preserve">
+    <value>No published release is available for this channel yet.</value>
+  </data>
+  <data name="LauncherPage_OpenOfficialWebsite" xml:space="preserve">
+    <value>Visit official website</value>
+  </data>
 </root>

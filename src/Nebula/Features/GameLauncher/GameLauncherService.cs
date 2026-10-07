@@ -230,6 +230,8 @@ internal partial class GameLauncherService
     public async Task<string> GetGameExeNameAsync(GameId gameId)
     {
         string? name = GetGameExeName(gameId.GameBiz);
+        if (gameId.GameBiz.IsHypergryphGame())
+            return name ?? "";
         if (string.IsNullOrWhiteSpace(name))
         {
             var config = await _hoYoPlayService.GetGameConfigAsync(gameId);
@@ -247,6 +249,10 @@ internal partial class GameLauncherService
     /// <returns></returns>
     public static string? GetGameExeName(GameBiz gameBiz)
     {
+        if (gameBiz.IsHypergryphGame() && AppConfig.GetHypergryphExecutable(gameBiz) is string selected
+            && !string.IsNullOrWhiteSpace(selected) && Path.GetFileName(selected) == selected
+            && selected.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            return selected;
         string? name = gameBiz.Value switch
         {
             GameBiz.hk4e_cn or GameBiz.hk4e_bilibili => "YuanShen.exe",
@@ -309,7 +315,10 @@ internal partial class GameLauncherService
         installPath ??= GetGameInstallPath(gameId);
         if (!string.IsNullOrWhiteSpace(installPath))
         {
-            var exe = Path.Join(installPath, await GetGameExeNameAsync(gameId));
+            var name = await GetGameExeNameAsync(gameId);
+            if (string.IsNullOrWhiteSpace(name))
+                return false;
+            var exe = Path.Join(installPath, name);
             return File.Exists(exe);
         }
         return false;
@@ -325,7 +334,9 @@ internal partial class GameLauncherService
     public async Task<Process?> GetGameProcessAsync(GameId gameId)
     {
         int currentSessionId = Process.GetCurrentProcess().SessionId;
-        var name = (await GetGameExeNameAsync(gameId)).Replace(".exe", "");
+        var name = Path.GetFileNameWithoutExtension(await GetGameExeNameAsync(gameId));
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
         return Process.GetProcessesByName(name).Where(x => x.SessionId == currentSessionId && !IsProcessPending(x)).FirstOrDefault();
     }
 
@@ -420,7 +431,7 @@ internal partial class GameLauncherService
                 ApplyLocalSwitcherFiles(gameId.GameBiz, configInstallPath);
             }
             arg = AppConfig.GetStartArgument(gameId.GameBiz)?.Trim();
-            if (AppConfig.EnableLoginAuthTicket is true)
+            if (AppConfig.EnableLoginAuthTicket is true && gameId.GameBiz.IsHoYoPlayGame())
             {
                 string? ticket = await _gameAuthLoginService.CreateAuthTicketByGameBiz(gameId);
                 if (!string.IsNullOrWhiteSpace(ticket))

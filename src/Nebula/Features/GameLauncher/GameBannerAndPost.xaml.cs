@@ -169,6 +169,11 @@ public sealed partial class GameBannerAndPost : UserControl
 
     private async Task UpdateGameContentAsync()
     {
+        if (!CurrentGameId.GameBiz.IsHoYoPlayGame())
+        {
+            ShowBannerAndPost = false;
+            return;
+        }
         try
         {
             var content = await _hoYoPlayService.GetGameContentAsync(CurrentGameId);

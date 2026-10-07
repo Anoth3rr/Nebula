@@ -9,6 +9,10 @@ namespace Nebula.Core.HoYoPlay;
 public class GameInfo : GameId
 {
 
+    [JsonPropertyName("hypergryph")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Nebula.Core.Hypergryph.HypergryphGameInfo? Hypergryph { get; set; }
+
     /// <summary>
     /// 名称、图标、背景、缩略图等
     /// </summary>

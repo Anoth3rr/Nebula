@@ -10,6 +10,7 @@ using Nebula.Core;
 using Nebula.Core.HoYoPlay;
 using Nebula.Features.GameLauncher;
 using Nebula.Features.HoYoPlay;
+using Nebula.Features.Hypergryph;
 using Nebula.Features.Setting;
 using Nebula.Features.ViewHost;
 using Nebula.Helpers;
@@ -41,6 +42,8 @@ public sealed partial class GameSelector : UserControl
 
 
     private readonly HoYoPlayService _hoyoplayService = AppConfig.GetService<HoYoPlayService>();
+
+    private readonly HypergryphService _hypergryphService = AppConfig.GetService<HypergryphService>();
 
 
     private readonly GameLauncherService _gameLauncherService = AppConfig.GetService<GameLauncherService>();
@@ -154,6 +157,11 @@ public sealed partial class GameSelector : UserControl
 
     private List<GameInfo> GetCachedGameInfos()
     {
+        return GetCachedHoYoPlayGameInfos().Concat(_hypergryphService.GetCachedGames()).ToList();
+    }
+
+    private static List<GameInfo> GetCachedHoYoPlayGameInfos()
+    {
         try
         {
             string? json = AppConfig.CachedGameInfo;
@@ -189,11 +197,11 @@ public sealed partial class GameSelector : UserControl
                 if (GameBiz.TryParse(str, out GameBiz biz))
                 {
                     // 已知的 GameBiz
-                    GameBizIcons.Add(new GameBizIcon(biz));
+                    GameBizIcons.Add(CreateGameIcon(biz, gameInfos));
                 }
                 else if (gameInfos.FirstOrDefault(x => x.GameBiz == biz) is GameInfo info)
                 {
-                    // 由 HoYoPlay API 获取，但未适配的 GameBiz
+                    // 由官方目录获取，但未适配的 GameBiz
                     GameBizIcons.Add(new GameBizIcon(info));
                 }
             }
@@ -208,7 +216,7 @@ public sealed partial class GameSelector : UserControl
             }
             else if (lastSelectedGameBiz.IsKnown())
             {
-                CurrentGameBizIcon = new GameBizIcon(lastSelectedGameBiz);
+                CurrentGameBizIcon = CreateGameIcon(lastSelectedGameBiz, gameInfos);
                 CurrentGameBizIcon.IsSelected = true;
                 CurrentGameBiz = lastSelectedGameBiz;
             }
@@ -576,27 +584,13 @@ public sealed partial class GameSelector : UserControl
         {
             var list = new List<GameBizDisplay>();
 
-            if (LanguageUtil.FilterLanguage(CultureInfo.CurrentUICulture.Name) is "zh-cn")
+            bool preferChina = LanguageUtil.FilterLanguage(CultureInfo.CurrentUICulture.Name) is "zh-cn";
+            foreach (var group in gameInfos.Where(x => !x.IsBilibiliServer()).GroupBy(x => x.GameBiz.Game))
             {
-                // 当前语言为简体中文时，游戏信息显示从中国官服获取的内容
-                foreach (var info in gameInfos)
-                {
-                    if (info.GameBiz.IsChinaServer() && !info.IsBilibiliServer())
-                    {
-                        list.Add(new GameBizDisplay { GameInfo = info });
-                    }
-                }
-            }
-            else
-            {
-                // 当前语言不为简体中文时，游戏信息显示从国际服获取的内容
-                foreach (var info in gameInfos)
-                {
-                    if (info.GameBiz.IsGlobalServer())
-                    {
-                        list.Add(new GameBizDisplay { GameInfo = info });
-                    }
-                }
+                // 只有一个地区有目录时仍显示该游戏，不因界面语言不同而消失。
+                var info = group.FirstOrDefault(x => preferChina ? x.GameBiz.IsChinaServer() : x.GameBiz.IsGlobalServer())
+                    ?? group.First();
+                list.Add(new GameBizDisplay { GameInfo = info });
             }
 
             AddLocalGameBizDisplay(list, GameBiz.arknights);
@@ -612,10 +606,8 @@ public sealed partial class GameSelector : UserControl
                     GameBiz biz = game + suffix;
                     if (biz.IsKnown())
                     {
-                        var server = new GameBizIcon(biz)
-                        {
-                            IsPinned = GameBizIcons.Any(x => x.GameBiz == biz),
-                        };
+                        var server = CreateGameIcon(biz, gameInfos);
+                        server.IsPinned = GameBizIcons.Any(x => x.GameBiz == biz);
                         item.Servers.Add(server);
                     }
                     else if (gameInfos.FirstOrDefault(x => x.GameBiz == biz) is GameInfo info)
@@ -682,23 +674,37 @@ public sealed partial class GameSelector : UserControl
     {
         try
         {
-            List<GameInfo> gameInfos = await _hoyoplayService.UpdateGameInfoListAsync();
+            var catalogs = await Task.WhenAll(UpdateHoYoPlayGameInfosAsync(), _hypergryphService.UpdateGameInfoListAsync());
+            List<GameInfo> gameInfos = catalogs.SelectMany(x => x).ToList();
             InitializeGameServerArea(gameInfos);
-            foreach (GameBizIcon icon in GameBizIcons)
+            foreach (GameBizIcon icon in GameBizIcons.Concat(CurrentGameBizIcon is null ? [] : new[] { CurrentGameBizIcon }).Distinct())
             {
-                if (icon.GameBiz.IsKnown())
+                if ((!icon.GameBiz.IsKnown() || icon.GameBiz.IsHypergryphGame())
+                    && gameInfos.FirstOrDefault(x => x.GameBiz == icon.GameBiz) is GameInfo info)
+                {
+                    icon.UpdateInfo(info);
+                }
+                else if (icon.GameBiz.IsKnown())
                 {
                     icon.UpdateInfo();
-                }
-                else
-                {
-                    GameInfo info = await _hoyoplayService.GetGameInfoAsync(icon.GameId);
-                    icon.UpdateInfo(info);
                 }
             }
             await InitializeInstalledGamesCommand.ExecuteAsync(null);
         }
         catch { }
+    }
+
+    private async Task<List<GameInfo>> UpdateHoYoPlayGameInfosAsync()
+    {
+        try { return await _hoyoplayService.UpdateGameInfoListAsync(); }
+        catch { return GetCachedHoYoPlayGameInfos(); }
+    }
+
+    private static GameBizIcon CreateGameIcon(GameBiz biz, List<GameInfo> gameInfos)
+    {
+        if (biz.IsHypergryphGame() && gameInfos.FirstOrDefault(x => x.GameBiz == biz) is GameInfo info)
+            return new GameBizIcon(info);
+        return new GameBizIcon(biz);
     }
 
 

@@ -32,6 +32,26 @@ namespace Nebula.Features.Update;
 [INotifyPropertyChanged]
 public sealed partial class UpdateWindow : WindowEx
 {
+    private static UpdateWindow? _current;
+    private bool _startAutomatically;
+
+    public static void ShowRelease(ReleaseInfoDetail? release = null, bool startAutomatically = false)
+    {
+        if (_current is not null)
+        {
+            if (_current.NewVersion is null && release is not null)
+            {
+                _current.Close();
+            }
+            else
+            {
+                _current.Activate();
+                return;
+            }
+        }
+        _current = new UpdateWindow { NewVersion = release, _startAutomatically = startAutomatically };
+        _current.Activate();
+    }
 
 
     private readonly ILogger<UpdateWindow> _logger = AppConfig.GetLogger<UpdateWindow>();
@@ -132,6 +152,11 @@ public sealed partial class UpdateWindow : WindowEx
             Finish(skipRestart: true);
         }
         _ = LoadUpdateContentAsync();
+        if (_startAutomatically && NewVersion is { DisableAutoUpdate: false } && !UpdateService.UpdateFinished)
+        {
+            _startAutomatically = false;
+            _ = UpdateNowCommand.ExecuteAsync(null);
+        }
     }
 
 
@@ -141,6 +166,8 @@ public sealed partial class UpdateWindow : WindowEx
         _timer.Stop();
         _timer.Tick -= _timer_Tick;
         _updateService.StopUpdate();
+        _updateCts?.Cancel();
+        if (_current == this) _current = null;
         WeakReferenceMessenger.Default.UnregisterAll(this);
         this.Closed -= UpdateWindow_Closed;
     }
@@ -167,7 +194,7 @@ public sealed partial class UpdateWindow : WindowEx
             {
                 var url = fe.Tag switch
                 {
-                    "release" => $"https://github.com/Anoth3rr/Nebula/releases/tag/{NewVersion.Version}",
+                    "release" => NewVersion.ReleaseUrl ?? $"https://github.com/Anoth3rr/Nebula/releases/tag/{NewVersion.Version}",
                     "package" => NewVersion.PackageUrl,
                     _ => null,
                 };
@@ -239,6 +266,7 @@ public sealed partial class UpdateWindow : WindowEx
     [RelayCommand]
     private async Task UpdateNowAsync()
     {
+        if (NewVersion is null || NewVersion.DisableAutoUpdate) return;
         try
         {
             ErrorMessage = null;
@@ -283,20 +311,27 @@ public sealed partial class UpdateWindow : WindowEx
         }
         catch (OperationCanceledException)
         {
-            Button_UpdateNow.IsEnabled = true;
-            Button_RemindLatter.IsEnabled = true;
+            ErrorMessage = Lang.GachaLogPage_OperationCanceled;
         }
         catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
         {
             ErrorMessage = Lang.GachaLogPage_OperationCanceled;
-            Button_UpdateNow.IsEnabled = true;
-            Button_RemindLatter.IsEnabled = true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Update now");
-            Button_UpdateNow.IsEnabled = true;
-            Button_RemindLatter.IsEnabled = true;
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsUpdateNowEnabled = !NewVersion.DisableAutoUpdate;
+            IsUpdateRemindLatterEnabled = true;
+            Button_Restart.IsEnabled = true;
+            if (!AppConfig.IsPortable)
+            {
+                IsProgressTextVisible = false;
+                IsProgressBarVisible = false;
+            }
         }
     }
 
@@ -520,7 +555,7 @@ public sealed partial class UpdateWindow : WindowEx
         {
             _logger.LogError(ex, "Load recent update content");
             string tag = NewVersion?.Version ?? AppConfig.AppVersion;
-            webview.Source = new Uri($"https://github.com/Anoth3rr/Nebula/releases/tag/{tag}");
+            webview.Source = new Uri(NewVersion?.ReleaseUrl ?? $"https://github.com/Anoth3rr/Nebula/releases/tag/{tag}");
             webview.Visibility = Visibility.Visible;
             StackPanel_Loading.Visibility = Visibility.Collapsed;
             StackPanel_Error.Visibility = Visibility.Collapsed;
@@ -578,7 +613,7 @@ public sealed partial class UpdateWindow : WindowEx
         int count = 0;
         foreach (var release in releases)
         {
-            if (NuGetVersion.TryParse(release.TagName, out var version))
+            if (Nebula.Setup.Core.Github.GithubReleaseSource.ParseVersion(release.TagName) is NuGetVersion version)
             {
                 if (version > startVersion && version <= endVersion)
                 {

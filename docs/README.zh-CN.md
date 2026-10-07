@@ -3,7 +3,7 @@
 
 # Nebula
 
-Nebula 是一个整合了多个厂商的游戏而开发的开源第三方启动器，支持米哈游 PC 端的所有游戏、鹰角网络 PC 端的所有游戏、鸣潮，目标是整合国内的部分二游。除了启动器的基本功能外，我还会根据个人需求增加一些拓展功能，比如：
+Nebula 是一个整合多个厂商游戏的开源第三方启动器，目前接入米哈游 HoYoPlay 游戏、鹰角官方产品目录和鸣潮，目标是整合国内的部分二游。具体游戏能力见下方更新记录与目录说明。除了启动器的基本功能外，我还会根据个人需求增加一些拓展功能，比如：
 
 -  记录游戏时间
 -  切换游戏账号
@@ -18,6 +18,10 @@ Nebula 是一个整合了多个厂商的游戏而开发的开源第三方启动�
 本项目 fork from [Scighost/Starward](https://github.com/Scighost/Starward)，并参考了 [wuwatracker/wuwatracker](https://github.com/wuwatracker/wuwatracker) 和 [bhaoo/endfield-gacha](https://github.com/bhaoo/endfield-gacha)。
 
 ## 更新记录
+
+开发进度见 [开发进度核查](DevelopmentStatus.zh-CN.md)。软件现支持从本仓库 GitHub Releases 检查并升级，在「设置 → 关于」中配置自动检查与自动升级；发布包要求见 [软件更新与发布](AutoUpdate.zh-CN.md)。
+
+鹰角游戏列表现从官方森空岛产品配置动态读取，并查询鹰角启动器的 PC 版本能力，支持离线缓存与新产品自动显示。数据来源、当前覆盖范围与验证方法见 [鹰角动态游戏目录](HypergryphCatalog.zh-CN.md)。
 
 ### v0.0.0
 

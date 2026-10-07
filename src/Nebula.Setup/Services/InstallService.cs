@@ -130,15 +130,23 @@ public class InstallService : DownloadService
             throw new NotSupportedException("Extracting is only supported for the full package.");
         }
 
-        Directory.CreateDirectory(installFolder);
-        string[] files = Directory.GetFiles(installFolder, "*", SearchOption.AllDirectories);
-        foreach (string file in files)
+        string staging = Path.Combine(installFolder, $".nebula-extract-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(staging);
+        try
         {
-            File.SetAttributes(file, FileAttributes.Normal);
+            using var archive = SevenZipArchive.OpenArchive(stream, new ReaderOptions { Progress = progress });
+            foreach (var entry in archive.Entries.Where(x => !x.IsDirectory))
+                UpdatePackage.GetContainedPath(staging, entry.Key ?? throw new InvalidDataException("Missing package path."));
+            await Task.Run(() => archive.WriteToDirectory(staging, new ExtractionOptions { ExtractFullPath = true, Overwrite = false }), cancellation);
+            cancellation.ThrowIfCancellationRequested();
+            if (!File.Exists(Path.Combine(staging, "Nebula.exe")))
+                throw new InvalidDataException("The setup package does not contain Nebula.exe.");
+            await Task.Run(() => UpdatePackage.ApplyDirectory(staging, installFolder, cancellation), cancellation);
         }
-
-        using var archive = SevenZipArchive.OpenArchive(stream, new ReaderOptions { Progress = progress });
-        await Task.Run(() => archive.WriteToDirectory(installFolder), cancellation);
+        finally
+        {
+            UpdatePackage.TryDeleteDirectory(staging);
+        }
 
         RegistryHelper.WriteUninstallInfo(installFolder, AppVersion, TotalSize);
         RegistryHelper.WriteUrlProtocol(installFolder);

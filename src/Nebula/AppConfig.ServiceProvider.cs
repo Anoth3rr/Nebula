@@ -10,6 +10,7 @@ using Nebula.Core.Gacha.ZZZ;
 using Nebula.Core.GameNotice;
 using Nebula.Core.GameRecord;
 using Nebula.Core.HoYoPlay;
+using Nebula.Core.Hypergryph;
 using Nebula.Core.SelfQuery;
 using Nebula.Features.Background;
 using Nebula.Features.Database;
@@ -20,6 +21,7 @@ using Nebula.Features.GameInstall;
 using Nebula.Features.GameLauncher;
 using Nebula.Features.GameRecord;
 using Nebula.Features.HoYoPlay;
+using Nebula.Features.Hypergryph;
 using Nebula.Features.PlayTime;
 using Nebula.Features.RPC;
 using Nebula.Features.Screenshot;
@@ -59,6 +61,8 @@ public static partial class AppConfig
             sc.AddSingleton<HoYoPlayClient>();
             sc.AddSingleton<GameNoticeClient>();
             sc.AddSingleton<HoYoPlayService>();
+            sc.AddHttpClient<HypergryphClient>(client => client.Timeout = TimeSpan.FromSeconds(10));
+            sc.AddSingleton<HypergryphService>();
             sc.AddSingleton<BackgroundService>();
             sc.AddSingleton<GameLauncherService>();
             sc.AddSingleton<GamePackageService>();
@@ -88,7 +92,7 @@ public static partial class AppConfig
             sc.AddSingleton<SelfQueryService>();
 
             sc.AddHttpClient<ReleaseClient>().ConfigNebulaHttpClient();
-            sc.AddTransient<UpdateService>();
+            sc.AddSingleton<UpdateService>();
 
             sc.AddSingleton<RpcService>();
             sc.AddSingleton<GameInstallService>();

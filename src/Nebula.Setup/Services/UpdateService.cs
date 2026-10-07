@@ -2,6 +2,7 @@ using SharpCompress.Compressors.ZStandard;
 using Nebula.Setup.Core;
 using Nebula.Setup.Snap.HPatch;
 using System.Net;
+using SharpCompress.Common;
 
 namespace Nebula.Setup.Services;
 
@@ -20,6 +21,18 @@ public class UpdateService : DownloadService
 
     public async Task UpdateAsync(string installFolder, string? oldVersion, string? newVersion, bool preview = false, CancellationToken cancellation = default)
     {
+        if (typeof(UpdateService).Assembly.GetManifestResourceNames().Contains("Nebula.Setup.Assets.Nebula.7z"))
+        {
+            var installer = new InstallService();
+            await installer.PrepareManifestAsync(cancellation);
+            if (newVersion is not null && newVersion != installer.AppVersion)
+                throw new InvalidDataException("The downloaded installer version does not match the requested update.");
+            OldVersion = oldVersion ?? string.Empty;
+            NewVersion = installer.AppVersion;
+            await installer.ExtractAsync(installFolder, new Progress<ProgressReport>(), cancellation);
+            return;
+        }
+
         RecreateHttpClient();
 
         ReleaseManifest = await GetReleaseManifestAsync(oldVersion, newVersion, preview, cancellation).ConfigureAwait(false);

@@ -23,6 +23,10 @@ namespace Nebula.Language {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Lang {
+        public static string Update_AutomaticallyCheck => ResourceManager.GetString("Update_AutomaticallyCheck", resourceCulture);
+        public static string Update_AutomaticallyInstall => ResourceManager.GetString("Update_AutomaticallyInstall", resourceCulture);
+        public static string Update_AutomaticallyInstallDescription => ResourceManager.GetString("Update_AutomaticallyInstallDescription", resourceCulture);
+        public static string Update_NoPublishedRelease => ResourceManager.GetString("Update_NoPublishedRelease", resourceCulture);
         
         private static global::System.Resources.ResourceManager resourceMan;
         
@@ -7742,6 +7746,15 @@ namespace Nebula.Language {
             }
         }
         
+        /// <summary>
+        ///   查找类似 Visit official website 的本地化字符串。
+        /// </summary>
+        public static string LauncherPage_OpenOfficialWebsite {
+            get {
+                return ResourceManager.GetString("LauncherPage_OpenOfficialWebsite", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   查找类似 Import {0} signal search record(s) successfully. 的本地化字符串。
         /// </summary>

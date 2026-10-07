@@ -1,0 +1,21 @@
+name: Update regression tests
+
+on:
+  push:
+    branches: [main, "dev/*"]
+  pull_request:
+    branches: [main, "dev/*"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - run: dotnet run --project tests/Nebula.Update.Tests -c Release
+      - run: dotnet run --project tests/Nebula.Hypergryph.Tests -c Release

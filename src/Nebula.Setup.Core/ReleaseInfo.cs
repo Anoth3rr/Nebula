@@ -32,6 +32,9 @@ public class ReleaseInfo
 
 public class ReleaseInfoDetail
 {
+    [JsonPropertyName("release_url")]
+    public string? ReleaseUrl { get; set; }
+
     [JsonPropertyName("version")]
     public string Version { get; set; }
 

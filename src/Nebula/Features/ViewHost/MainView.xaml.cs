@@ -44,6 +44,10 @@ public sealed partial class MainView : UserControl
     public MainView()
     {
         this.InitializeComponent();
+        _updateTimer = DispatcherQueue.CreateTimer();
+        _updateTimer.Interval = TimeSpan.FromMinutes(5);
+        _updateTimer.Tick += (_, _) => _ = CheckUpdateOrShowRecentUpdateContentAsync();
+        this.Unloaded += (_, _) => _updateTimer.Stop();
         InitializeMainView();
     }
 
@@ -77,6 +81,7 @@ public sealed partial class MainView : UserControl
         CheckSystemProxy();
         HotkeyManager.InitializeHotkey(this.XamlRoot.GetWindowHandle());
         _ = CheckUpdateOrShowRecentUpdateContentAsync();
+        _updateTimer.Start();
         AppConfig.GetService<RpcService>().TrySetEnviromentAsync();
         LogUploadService.Start();
         if (AppConfig.EnableGamepadController)
@@ -254,7 +259,9 @@ public sealed partial class MainView : UserControl
     #region Update
 
 
-    private DateTimeOffset _lastCheckUpdateTime;
+    private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _updateTimer;
+
+    private bool _checkedRecentUpdateContent;
 
     private DateTimeOffset _lastShowUpdateTime;
 
@@ -275,31 +282,29 @@ public sealed partial class MainView : UserControl
 #pragma warning restore CS0162 // 检测到无法访问的代�?
         try
         {
-            if (_lastCheckUpdateTime == default && NuGetVersion.TryParse(AppConfig.AppVersion, out var appVersion))
+            if (!_checkedRecentUpdateContent)
             {
-                _ = NuGetVersion.TryParse(AppConfig.LastAppVersion, out var lastVersion);
-                if (appVersion != lastVersion)
+                _checkedRecentUpdateContent = true;
+                if (!string.IsNullOrEmpty(AppConfig.LastAppVersion) && AppConfig.AppVersion != AppConfig.LastAppVersion
+                    && AppConfig.ShowUpdateContentAfterUpdateRestart)
                 {
-                    if (AppConfig.ShowUpdateContentAfterUpdateRestart)
-                    {
-                        new UpdateWindow().Activate();
-                    }
-                    else
-                    {
-                        AppConfig.LastAppVersion = AppConfig.AppVersion;
-                    }
-                    _lastCheckUpdateTime = DateTimeOffset.Now - TimeSpan.FromMinutes(55);
-                    return;
+                    UpdateWindow.ShowRelease();
+                }
+                else
+                {
+                    AppConfig.LastAppVersion = AppConfig.AppVersion;
                 }
             }
-            DateTimeOffset now = DateTimeOffset.Now;
-            if (now - _lastCheckUpdateTime > TimeSpan.FromHours(1))
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            if (AppConfig.AutomaticallyCheckForUpdates && !UpdateService.UpdateFinished
+                && (now - AppConfig.LastUpdateCheckTime >= TimeSpan.FromHours(1) || AppConfig.LastUpdateCheckTime > now))
             {
+                // Throttle unsuccessful checks too, so a network error does not cause repeated requests.
+                AppConfig.LastUpdateCheckTime = now;
                 var release = await AppConfig.GetService<UpdateService>().CheckUpdateAsync(false);
-                _lastCheckUpdateTime = now;
                 if (release != null && now - _lastShowUpdateTime > TimeSpan.FromHours(6) && now.Date != _lastShowUpdateTime.Date)
                 {
-                    new UpdateWindow { NewVersion = release }.Activate();
+                    UpdateWindow.ShowRelease(release, AppConfig.AutomaticallyInstallUpdates);
                     _lastShowUpdateTime = now;
                 }
             }

@@ -13,12 +13,19 @@ param(
 
     [switch] $NoClean,
 
-    [switch] $KeepPayload
+    [switch] $KeepPayload,
+
+    [switch] $IncludePortable,
+
+    [switch] $AllowPrerelease
 )
 
 $ErrorActionPreference = "Stop"
 
-if ($Version.Contains("-")) {
+if ($Version -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?$') {
+    throw "Use a semantic version without a leading v, such as 1.2.3 or 1.2.3-preview.1."
+}
+if ($Version.Contains("-") -and -not $AllowPrerelease) {
     throw "Stable package versions must not contain a prerelease suffix. Use a version like 1.2.3."
 }
 
@@ -206,7 +213,10 @@ return 0;
 }
 
 $rid = "win-$Architecture"
-$outputRoot = Join-Path $repoRoot $OutputDir
+$outputRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot $OutputDir))
+if (-not $outputRoot.StartsWith($repoRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) {
+    throw "OutputDir must be a subdirectory of the repository."
+}
 $workRoot = Join-Path $outputRoot "work\$Architecture"
 $appPayloadDir = Join-Path $workRoot "Nebula\app-$Version"
 $setupStubDir = Join-Path $workRoot "setup-stub"
@@ -215,6 +225,7 @@ $packHelperDir = Join-Path $workRoot "pack-sevenzip"
 $setupAssetsDir = Join-Path $repoRoot "src\Nebula.Setup\Assets"
 $payloadArchive = Join-Path $setupAssetsDir "Nebula.7z"
 $finalPackage = Join-Path $outputRoot "Nebula_Setup_${Version}_${Architecture}.exe"
+$portablePackage = Join-Path $outputRoot "Nebula_Portable_${Version}_${Architecture}.zip"
 $sevenZip = Resolve-SevenZip $SevenZipPath
 
 if (-not $NoClean) {
@@ -257,6 +268,30 @@ try {
     Publish-Setup -RuntimeIdentifier $rid -OutputPath $finalSetupDir -PackageVersion $Version -UseNativeAot:$NativeAot
 
     Copy-Item -LiteralPath (Join-Path $finalSetupDir "Nebula.Setup.exe") -Destination $finalPackage -Force
+
+    if ($IncludePortable) {
+        Write-Host "Building the portable launcher and update package..."
+        $portableRoot = Join-Path $workRoot "portable"
+        $launcherRoot = Join-Path $workRoot "launcher"
+        $portableApp = Join-Path $portableRoot "app-$Version"
+        if (Test-Path -LiteralPath $portableRoot) {
+            Remove-Item -LiteralPath $portableRoot -Recurse -Force
+        }
+        New-Item -ItemType Directory -Force -Path $portableRoot, $launcherRoot | Out-Null
+        Copy-Item -LiteralPath $appPayloadDir -Destination $portableApp -Recurse
+        Invoke-Checked "msbuild" @(
+            "src/Nebula.Launcher/Nebula.Launcher.vcxproj",
+            "/p:Configuration=Release", "/p:Platform=$Architecture",
+            "/p:Version=$Version", "/p:OutDir=$launcherRoot\"
+        )
+        Copy-Item -LiteralPath (Join-Path $launcherRoot "Nebula.exe") -Destination (Join-Path $portableRoot "Nebula.exe")
+        Set-Content -LiteralPath (Join-Path $portableRoot "version.ini") -Value "version=$Version" -Encoding utf8
+        if (Test-Path -LiteralPath $portablePackage) {
+            Remove-Item -LiteralPath $portablePackage -Force
+        }
+        [IO.Compression.ZipFile]::CreateFromDirectory($portableRoot, $portablePackage)
+        Write-Host "Portable package created: $portablePackage"
+    }
 
     Write-Host ""
     Write-Host "Stable installer created:"

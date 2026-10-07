@@ -138,6 +138,9 @@ public record struct GameBiz
         _ => false,
     };
 
+    public bool IsHypergryphGame() => Game is arknights or endfield
+        || Game.StartsWith("hg-", StringComparison.Ordinal);
+
 
     public bool IsChinaServer() => Server is "cn";
 

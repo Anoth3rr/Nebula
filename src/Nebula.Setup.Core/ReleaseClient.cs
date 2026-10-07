@@ -16,12 +16,12 @@ namespace Nebula.Setup.Core;
 
 public class ReleaseClient
 {
-    public static Uri DefaultBaseAddress { get; set; } = new("https://nebula-release.scighost.com");
+    public static Uri DefaultBaseAddress { get; set; } = new("https://api.github.com/repos/Anoth3rr/Nebula/");
 
 
     private readonly HttpClient _httpClient;
 
-    public ReleaseClient(HttpClient httpClient)
+    public ReleaseClient(HttpClient? httpClient)
     {
         if (httpClient is null)
         {
@@ -39,33 +39,30 @@ public class ReleaseClient
             _httpClient = httpClient;
         }
         _httpClient.BaseAddress = DefaultBaseAddress;
+        if (!_httpClient.DefaultRequestHeaders.UserAgent.Any())
+        {
+            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Nebula-Updater/1.0");
+        }
     }
 
 
     public async Task<ReleaseInfo> GetLatestReleaseInfoAsync(bool isPrerelease, string currentVersion, CancellationToken cancellationToken = default)
     {
-        var url = isPrerelease switch
+        var releases = new List<GithubRelease>();
+        for (int page = 1; ; page++)
         {
-            false => $"/release/latest?version={currentVersion}",
-            true => $"/release/latest-preview?version={currentVersion}",
-        };
-        var info = await _httpClient.GetFromJsonAsync(url, ReleaseJsonContext.Default.ReleaseInfo, cancellationToken);
-        return info ?? throw new NullReferenceException($"Cannot get json content from '{url}'.");
+            var batch = await GetGithubReleaseAsync(page, 100, cancellationToken);
+            releases.AddRange(batch);
+            if (batch.Count < 100) break;
+        }
+        var release = GithubReleaseSource.SelectLatest(releases, isPrerelease) ?? throw new ReleaseNotFoundException();
+        return GithubReleaseSource.ToReleaseInfo(release);
     }
 
 
     public async Task<ReleaseInfoDetail> GetLatestReleaseInfoDetailAsync(bool isPrerelease, string currentVersion, Architecture arch, InstallType type, CancellationToken cancellationToken = default)
     {
-        var url = isPrerelease switch
-        {
-            false => $"/release/latest?version={currentVersion}",
-            true => $"/release/latest-preview?version={currentVersion}",
-        };
-        var info = await _httpClient.GetFromJsonAsync(url, ReleaseJsonContext.Default.ReleaseInfo, cancellationToken);
-        if (info is null)
-        {
-            throw new NullReferenceException($"Cannot get json content from '{url}'.");
-        }
+        var info = await GetLatestReleaseInfoAsync(isPrerelease, currentVersion, cancellationToken);
         string key = $"{arch}-{type}".ToLower();
         if (info.Releases?.TryGetValue(key, out var value) ?? false)
         {
@@ -79,9 +76,16 @@ public class ReleaseClient
 
     public async Task<ReleaseInfo> GetReleaseInfoAsync(string version, CancellationToken cancellationToken = default)
     {
-        var url = $"/release/version/{version}";
-        var info = await _httpClient.GetFromJsonAsync(url, ReleaseJsonContext.Default.ReleaseInfo, cancellationToken);
-        return info ?? throw new NullReferenceException($"Cannot get json content from '{url}'.");
+        GithubRelease? release;
+        try
+        {
+            release = await GetGithubReleaseAsync(version, cancellationToken);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound && !version.StartsWith('v'))
+        {
+            release = await GetGithubReleaseAsync($"v{version}", cancellationToken);
+        }
+        return GithubReleaseSource.ToReleaseInfo(release ?? throw new ReleaseNotFoundException());
     }
 
 
@@ -117,7 +121,7 @@ public class ReleaseClient
 
     public async Task<GithubRelease?> GetGithubReleaseAsync(string tag, CancellationToken cancellationToken = default)
     {
-        string url = $"https://api.github.com/repos/Anoth3rr/Nebula/releases/tags/{tag}";
+        string url = $"https://api.github.com/repos/Anoth3rr/Nebula/releases/tags/{Uri.EscapeDataString(tag)}";
         return await _httpClient.GetFromJsonAsync(url, ReleaseJsonContext.Default.GithubRelease, cancellationToken);
     }
 

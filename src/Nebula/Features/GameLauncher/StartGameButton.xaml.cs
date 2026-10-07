@@ -65,6 +65,8 @@ public sealed partial class StartGameButton : UserControl
         GameState.Installing => "",
         GameState.ResumeDownload => Lang.StartGameButton_ResumeDownload,
         GameState.ComingSoon => "Coming Soon",
+        GameState.OpenWebsite => Lang.LauncherPage_OpenOfficialWebsite,
+        GameState.LocateGame => Lang.InstallGameDialog_LocateGame,
         _ => "",
     };
 

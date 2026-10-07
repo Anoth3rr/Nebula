@@ -1,0 +1,63 @@
+name: Package GitHub Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version without v (for example 0.1.0 or 0.1.0-preview.1)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: windows-2025-vs2026
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - uses: microsoft/setup-msbuild@v3
+      - name: Test updater
+        run: dotnet run --project tests/Nebula.Update.Tests -c Release
+      - name: Build packages
+        env:
+          NEBULA_VERSION: ${{ inputs.version }}
+          NEBULA_ARCH: ${{ matrix.arch }}
+        run: ./scripts/package-stable.ps1 -Version $env:NEBULA_VERSION -Architecture $env:NEBULA_ARCH -IncludePortable -AllowPrerelease
+      - uses: actions/upload-artifact@v7
+        with:
+          name: nebula-${{ matrix.arch }}
+          path: |
+            publish/stable/Nebula_Setup_*.exe
+            publish/stable/Nebula_Portable_*.zip
+          if-no-files-found: error
+
+  draft-release:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: nebula-*
+          merge-multiple: true
+          path: packages
+      - name: Create draft release for review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NEBULA_VERSION: ${{ inputs.version }}
+          NEBULA_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          args=("v$NEBULA_VERSION" packages/* --draft --target "$NEBULA_COMMIT" --title "Nebula $NEBULA_VERSION" --generate-notes)
+          if [[ "$NEBULA_VERSION" == *-* ]]; then args+=(--prerelease); fi
+          gh release create "${args[@]}"

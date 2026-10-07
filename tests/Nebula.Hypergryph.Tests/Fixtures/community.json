@@ -1,0 +1,67 @@
+{
+  "code": 0,
+  "data": {
+    "list": [
+      {
+        "game": {
+          "gameId": 1,
+          "name": "明日方舟",
+          "iconUrl": "https://bbs.hycdn.cn/asset/rhodes_island.png",
+          "backgroundUrl": "https://bbs.hycdn.cn/asset/background/arknights_bg_v2.png",
+          "pcIconUrl": "https://bbs.hycdn.cn/asset/rhodes_island.png",
+          "pcBackgroundUrl": "https://bbs.hycdn.cn/asset/arknights_pc_bg.png"
+        }
+      },
+      {
+        "game": {
+          "gameId": 2,
+          "name": "来自星尘",
+          "iconUrl": "https://bbs.hycdn.cn/asset/games/8a6d6e84e89dc408518aee76cf2a89d1.png",
+          "backgroundUrl": "https://bbs.hycdn.cn/asset/background/exastris_bg_v2.png",
+          "pcIconUrl": "https://bbs.hycdn.cn/asset/ex_astris.png",
+          "pcBackgroundUrl": "https://bbs.hycdn.cn/asset/exastris_pc_bg.png"
+        }
+      },
+      {
+        "game": {
+          "gameId": 3,
+          "name": "明日方舟：终末地",
+          "iconUrl": "https://bbs.hycdn.cn/asset/endfield.png",
+          "backgroundUrl": "https://bbs.hycdn.cn/asset/background/endfield_bg_v2.png",
+          "pcIconUrl": "https://bbs.hycdn.cn/asset/endfleld.png",
+          "pcBackgroundUrl": "https://bbs.hycdn.cn/asset/background/endfield_pc_ef2313c44552d077c58366b5abfb31ca.png"
+        }
+      },
+      {
+        "game": {
+          "gameId": 4,
+          "name": "泡姆泡姆",
+          "iconUrl": "https://bbs.hycdn.cn/asset/popucom.webp",
+          "backgroundUrl": "https://bbs.hycdn.cn/asset/background/popucom_bg_v2.png",
+          "pcIconUrl": "https://bbs.hycdn.cn/asset/popucom.webp",
+          "pcBackgroundUrl": "https://bbs.hycdn.cn/asset/popucom_pc_bg.png"
+        }
+      },
+      {
+        "game": {
+          "gameId": 101,
+          "name": "开拓芯",
+          "iconUrl": "https://bbs.hycdn.cn/asset/openup.webp",
+          "backgroundUrl": "https://bbs.hycdn.cn/asset/background/openup/app.png",
+          "pcIconUrl": "https://bbs.hycdn.cn/asset/openup_pc.webp",
+          "pcBackgroundUrl": "https://bbs.hycdn.cn/asset/background/openup/pc.png"
+        }
+      },
+      {
+        "game": {
+          "gameId": 100,
+          "name": "纳斯特港",
+          "iconUrl": "https://bbs.hycdn.cn/asset/6497465ab3e22dfabbcf0baedcf14701.png",
+          "backgroundUrl": "https://bbs.hycdn.cn/asset/background/nest_harbour/2026summer/app.png",
+          "pcIconUrl": "https://bbs.hycdn.cn/asset/nest_harbour.png",
+          "pcBackgroundUrl": "https://bbs.hycdn.cn/asset/background/nest_harbour/2026autumn/pc.png"
+        }
+      }
+    ]
+  }
+}

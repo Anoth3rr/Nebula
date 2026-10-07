@@ -10,6 +10,7 @@ using Nebula.Features.Background;
 using Nebula.Features.CloudGame;
 using Nebula.Features.GameInstall;
 using Nebula.Features.HoYoPlay;
+using Nebula.Features.Hypergryph;
 using Nebula.Features.Overlay;
 using Nebula.Features.ViewHost;
 using Nebula.Frameworks;
@@ -45,6 +46,8 @@ public sealed partial class GameLauncherPage : PageBase
     private readonly GameInstallService _gameInstallService = AppConfig.GetService<GameInstallService>();
 
     private readonly HoYoPlayService _hoYoPlayService = AppConfig.GetService<HoYoPlayService>();
+
+    private readonly HypergryphService _hypergryphService = AppConfig.GetService<HypergryphService>();
 
 
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _dispatchTimer;
@@ -85,7 +88,7 @@ public sealed partial class GameLauncherPage : PageBase
     }
 
 
-    public bool IsHypergryphLauncherView => CurrentGameBiz.Game is GameBiz.arknights or GameBiz.endfield or GameBiz.wutheringwaves;
+    public bool IsHypergryphLauncherView => CurrentGameBiz.IsHypergryphGame() || CurrentGameBiz.Game is GameBiz.wutheringwaves;
 
 
     public bool IsDefaultLauncherView => !IsHypergryphLauncherView;
@@ -158,6 +161,14 @@ public sealed partial class GameLauncherPage : PageBase
                 break;
             case GameState.ComingSoon:
                 break;
+            case GameState.OpenWebsite:
+                var website = _hypergryphService.GetGameInfo(CurrentGameBiz)?.Hypergryph?.Website;
+                if (Uri.TryCreate(website, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
+                    await Launcher.LaunchUriAsync(uri);
+                break;
+            case GameState.LocateGame:
+                await LocateGameAsync();
+                break;
             default:
                 break;
         }
@@ -189,6 +200,8 @@ public sealed partial class GameLauncherPage : PageBase
     /// <returns></returns>
     private async Task InitializeGameServerAsync()
     {
+        if (!CurrentGameBiz.IsHoYoPlayGame())
+            return;
         try
         {
             GameInfo? gameInfo;
@@ -283,18 +296,26 @@ public sealed partial class GameLauncherPage : PageBase
     {
         try
         {
+            if (CurrentGameBiz.IsHypergryphGame() && !CurrentGameBiz.IsKnown()
+                && _hypergryphService.GetGameInfo(CurrentGameBiz)?.Hypergryph?.SupportsPc is not true)
+            {
+                GameState = GameState.OpenWebsite;
+                return;
+            }
             GameInstallPath = GameLauncherService.GetGameInstallPath(CurrentGameId, out bool storageRemoved);
             IsInstallPathRemovableTipEnabled = storageRemoved;
             if (GameInstallPath is null || storageRemoved)
             {
-                GameState = GameState.InstallGame;
+                GameState = CurrentGameBiz.IsHypergryphGame() ? GameState.LocateGame : GameState.InstallGame;
                 return;
             }
             isGameExeExists = await _gameLauncherService.IsGameExeExistsAsync(CurrentGameId);
             if (!CurrentGameBiz.IsHoYoPlayGame())
             {
-                GameState = isGameExeExists ? GameState.StartGame : GameState.InstallGame;
-                await CheckGameRunningAsync();
+                GameState = isGameExeExists ? GameState.StartGame
+                    : CurrentGameBiz.IsHypergryphGame() ? GameState.LocateGame : GameState.InstallGame;
+                if (isGameExeExists)
+                    await CheckGameRunningAsync();
                 return;
             }
             localGameVersion = await _gameLauncherService.GetLocalGameVersionAsync(CurrentGameId);
@@ -338,7 +359,17 @@ public sealed partial class GameLauncherPage : PageBase
     {
         try
         {
-            string? folder = await FileDialogHelper.PickFolderAsync(this.XamlRoot);
+            string? selectedExecutable = null;
+            string? folder;
+            if (CurrentGameBiz.IsHypergryphGame() && !CurrentGameBiz.IsKnown())
+            {
+                selectedExecutable = await FileDialogHelper.PickSingleFileAsync(this.XamlRoot, ("Executable", ".exe"));
+                folder = selectedExecutable is null ? null : Path.GetDirectoryName(selectedExecutable);
+            }
+            else
+            {
+                folder = await FileDialogHelper.PickFolderAsync(this.XamlRoot);
+            }
             if (!string.IsNullOrWhiteSpace(folder))
             {
                 if (DriveHelper.GetDriveType(folder) is DriveType.Network && !new Uri(folder).IsUnc)
@@ -347,6 +378,8 @@ public sealed partial class GameLauncherPage : PageBase
                 }
                 else
                 {
+                    if (selectedExecutable is not null)
+                        AppConfig.SetHypergryphExecutable(CurrentGameBiz, Path.GetFileName(selectedExecutable));
                     GameLauncherService.ChangeGameInstallPath(CurrentGameId, folder);
                     CheckGameVersion();
                     WeakReferenceMessenger.Default.Send(new GameInstallPathChangedMessage());

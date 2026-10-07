@@ -134,6 +134,7 @@
                                           sh:PointerCursor.CursorShape="Hand"
                                           Background="#40000000"
                                           CornerRadius="8"
+                                          ToolTipService.ToolTip="{x:Bind GameInfo.Display.Name}"
                                           PointerEntered="Grid_GameBizDisplay_PointerEntered"
                                           Tapped="Grid_GameBizDisplay_Tapped">
                                         <!--  背景图  -->
@@ -150,6 +151,17 @@
                                                         Background="Transparent"
                                                         Source="{x:Bind GameInfo.Display.Logo.Url}"
                                                         Style="{StaticResource NoAnimationImageExStyle}" />
+                                        <!--  没有专用 Logo 的鹰角目录条目显示文字标题  -->
+                                        <Border Padding="8,5"
+                                                VerticalAlignment="Bottom"
+                                                Background="#B0000000"
+                                                Visibility="{x:Bind ShowGameTitle}">
+                                            <TextBlock FontSize="14"
+                                                       Foreground="White"
+                                                       Text="{x:Bind GameInfo.Display.Name}"
+                                                       TextAlignment="Center"
+                                                       TextWrapping="Wrap" />
+                                        </Border>
                                         <!--  鼠标移入时 Icon & 选择服务器  -->
                                         <Grid Name="Grid_GameBizDisplay_IconAndName"
                                               Background="#D0000000"

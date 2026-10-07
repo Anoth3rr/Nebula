@@ -29,4 +29,8 @@ public enum GameState
 
     ComingSoon = 8,
 
+    OpenWebsite = 9,
+
+    LocateGame = 10,
+
 }

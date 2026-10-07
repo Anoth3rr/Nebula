@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Logging;
-using NuGet.Versioning;
 using Polly;
 using Polly.Retry;
 using Snap.HPatch;
 using Nebula.RPC.GameInstall;
 using Nebula.Setup.Core;
+using Nebula.Setup.Core.Github;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -76,18 +76,14 @@ internal class UpdateService
 
     public async Task<ReleaseInfoDetail?> CheckUpdateAsync(bool disableIgnore = false)
     {
-        _ = NuGetVersion.TryParse(AppConfig.AppVersion, out var currentVersion);
-        _ = NuGetVersion.TryParse(AppConfig.IgnoreVersion, out var ignoreVersion);
-#if DEBUG
-        var release = await _releaseClient.GetLatestReleaseInfoDetailAsync(AppConfig.EnablePreviewRelease, AppConfig.AppVersion, RuntimeInformation.ProcessArchitecture, InstallType.Portable);
-#else
-        var release = await _releaseClient.GetLatestReleaseInfoDetailAsync(AppConfig.EnablePreviewRelease, AppConfig.AppVersion, RuntimeInformation.ProcessArchitecture, AppConfig.InstallType);
-#endif
+        var currentVersion = GithubReleaseSource.ParseVersion(AppConfig.AppVersion);
+        var ignoreVersion = GithubReleaseSource.ParseVersion(AppConfig.IgnoreVersion);
+        var release = await GetLatestVersionAsync();
         _logger.LogInformation("Current version: {currentVersion}, latest version: {latestVersion}, ignore version: {ignoreVersion}.", AppConfig.AppVersion, release?.Version, ignoreVersion);
-        _ = NuGetVersion.TryParse(release?.Version, out var newVersion);
-        if (newVersion! > currentVersion!)
+        var newVersion = GithubReleaseSource.ParseVersion(release?.Version);
+        if (currentVersion is not null && newVersion is not null && newVersion > currentVersion)
         {
-            if (disableIgnore || newVersion! > ignoreVersion!)
+            if (disableIgnore || ignoreVersion is null || newVersion > ignoreVersion)
             {
                 return release;
             }
@@ -97,13 +93,16 @@ internal class UpdateService
 
 
 
-    public async Task<ReleaseInfoDetail> GetLatestVersionAsync(CancellationToken cancellation = default)
+    public async Task<ReleaseInfoDetail?> GetLatestVersionAsync(CancellationToken cancellation = default)
     {
-#if DEBUG
-        return await _releaseClient.GetLatestReleaseInfoDetailAsync(AppConfig.EnablePreviewRelease, AppConfig.AppVersion, RuntimeInformation.ProcessArchitecture, InstallType.Portable);
-#else
-        return await _releaseClient.GetLatestReleaseInfoDetailAsync(AppConfig.EnablePreviewRelease, AppConfig.AppVersion, RuntimeInformation.ProcessArchitecture, AppConfig.InstallType);
-#endif
+        try
+        {
+            return await _releaseClient.GetLatestReleaseInfoDetailAsync(AppConfig.EnablePreviewRelease, AppConfig.AppVersion, RuntimeInformation.ProcessArchitecture, AppConfig.InstallType, cancellation);
+        }
+        catch (ReleaseNotFoundException)
+        {
+            return null;
+        }
     }
 
 
@@ -122,14 +121,21 @@ internal class UpdateService
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = new CancellationTokenSource();
             State = UpdateState.Pending;
-            if (!AppConfig.IsPortable)
+            if (!AppConfig.IsPortable || release.DisableAutoUpdate)
             {
                 // 无法自动更新
                 ErrorMessage = Lang.UpdateService_CannotUpdateAutomatically;
                 State = UpdateState.NotSupport;
                 return;
             }
-            await StartInternalAsync(release, _cancellationTokenSource.Token);
+            if (string.IsNullOrEmpty(release.ManifestUrl))
+            {
+                await InstallPortablePackageAsync(release, _cancellationTokenSource.Token);
+            }
+            else
+            {
+                await StartInternalAsync(release, _cancellationTokenSource.Token);
+            }
             if (State is UpdateState.Finish)
             {
                 UpdateFinished = true;
@@ -139,6 +145,10 @@ internal class UpdateService
                 _logger.LogWarning("Update stopped with unexpected state: {state}", State);
                 State = UpdateState.Stop;
             }
+        }
+        catch (OperationCanceledException)
+        {
+            State = UpdateState.Stop;
         }
         catch (Exception ex)
         {
@@ -150,6 +160,24 @@ internal class UpdateService
         {
             _isUpdating = false;
         }
+    }
+
+
+
+    private async Task InstallPortablePackageAsync(ReleaseInfoDetail release, CancellationToken cancellationToken)
+    {
+        string path = Path.Combine(AppConfig.CacheFolder, "update", $"Nebula-{release.Version}-{release.Architecture}.zip");
+        State = UpdateState.Downloading;
+        Progress_TotalBytes = release.PackageSize;
+        var progress = new Progress<long>(bytes => Interlocked.Exchange(ref _progress_DownloadBytes, bytes));
+        await UpdatePackage.DownloadAsync(_httpClient, release.PackageUrl, path, release.PackageSize, release.PackageHash, progress, cancellationToken);
+        State = UpdateState.Pending;
+        string target = Path.GetDirectoryName(AppConfig.NebulaPortableLauncherExecutePath)!;
+        await Task.Run(() => UpdatePackage.InstallPortableAsync(path, target, release.Version, cancellationToken), cancellationToken);
+        State = UpdateState.Finish;
+        try { File.Delete(path); }
+        catch (IOException ex) { _logger.LogWarning(ex, "Delete downloaded update package"); }
+        catch (UnauthorizedAccessException ex) { _logger.LogWarning(ex, "Delete downloaded update package"); }
     }
 
 

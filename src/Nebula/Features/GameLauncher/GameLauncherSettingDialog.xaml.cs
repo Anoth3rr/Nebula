@@ -12,6 +12,7 @@ using Nebula.Features.Background;
 using Nebula.Features.GameInstall;
 using Nebula.Features.GameSelector;
 using Nebula.Features.HoYoPlay;
+using Nebula.Features.Hypergryph;
 using Nebula.Helpers;
 using Nebula.RPC.GameInstall;
 using System;
@@ -259,7 +260,12 @@ public sealed partial class GameLauncherSettingDialog : ContentDialog
     {
         try
         {
-            if (CurrentGameId.GameBiz.IsKnown())
+            if (CurrentGameBiz.IsHypergryphGame()
+                && AppConfig.GetService<HypergryphService>().GetGameInfo(CurrentGameBiz) is GameInfo hypergryphInfo)
+            {
+                CurrentGameBizIcon = new GameBizIcon(hypergryphInfo);
+            }
+            else if (CurrentGameId.GameBiz.IsKnown())
             {
                 CurrentGameBizIcon = new GameBizIcon(CurrentGameId.GameBiz);
             }
