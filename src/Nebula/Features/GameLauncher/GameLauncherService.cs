@@ -430,7 +430,7 @@ internal partial class GameLauncherService
                 await SetChinaLauncherGameConfigAsync(gameId, configInstallPath);
                 ApplyLocalSwitcherFiles(gameId.GameBiz, configInstallPath);
             }
-            arg = AppConfig.GetStartArgument(gameId.GameBiz)?.Trim();
+            arg = GameLaunchArguments.Prepare(gameId.GameBiz, AppConfig.GetStartArgument(gameId.GameBiz), thirdPartyTool);
             if (AppConfig.EnableLoginAuthTicket is true && gameId.GameBiz.IsHoYoPlayGame())
             {
                 string? ticket = await _gameAuthLoginService.CreateAuthTicketByGameBiz(gameId);
