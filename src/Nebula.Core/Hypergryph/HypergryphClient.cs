@@ -1,17 +1,19 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Nebula.Core.HoYoPlay;
 
 namespace Nebula.Core.Hypergryph;
 
 /// <summary>
-/// 从森空岛官方产品配置发现游戏，再查询鹰角启动器的 PC 发行信息。
+/// 从森空岛官方产品配置发现游戏，再查询鹰角启动器的图片与 PC 发行信息。
 /// 社区版区列表仅用于补充图片，不能作为产品目录（其中包含非游戏版区）。
 /// </summary>
 public sealed class HypergryphClient(HttpClient httpClient)
 {
     public const string CatalogUrl = "https://assets.skland.com/common-config/json/game-config.json";
     public const string CommunityUrl = "https://zonai.skland.com/web/v1/game";
+    public const string ArtworkUrl = "https://launcher.hypergryph.com/api/proxy/web/batch_proxy";
     private const string LauncherUrl = "https://launcher.hypergryph.com/api/game/get_latest";
     private const string TransparentIcon = "ms-appx:///Assets/Image/Transparent.png";
 
@@ -41,8 +43,16 @@ public sealed class HypergryphClient(HttpClient httpClient)
                     GameBiz.endfield => "ms-appx:///Assets/Image/icon_endfield.ico",
                     _ => "ms-appx:///Assets/NebulaLogo.png",
                 });
-            var background = FirstNonEmpty(ReadString(display, "pcBackgroundUrl"),
-                ReadString(display, "backgroundUrl"), cached?.Display.Background?.Url, icon);
+            var background = FirstNonEmpty(cached?.Hypergryph?.LauncherBackground, cached?.Hypergryph?.LauncherCover,
+                ReadHttpsUrl(display, "pcBackgroundUrl"), ReadHttpsUrl(display, "backgroundUrl"),
+                cached?.Display.Background?.Url, biz.Game switch
+                {
+                    GameBiz.arknights => "ms-appx:///Assets/Image/cover_arknights.jpg",
+                    GameBiz.endfield => "ms-appx:///Assets/Image/cover_endfield.jpg",
+                    _ => icon,
+                });
+            var thumbnail = FirstNonEmpty(cached?.Hypergryph?.LauncherCover,
+                cached?.Hypergryph?.LauncherBackground, background);
 
             games.Add(new GameInfo
             {
@@ -54,7 +64,7 @@ public sealed class HypergryphClient(HttpClient httpClient)
                     Language = "zh-cn", Name = name, Title = name, Subtitle = "",
                     Icon = new GameImage { Url = icon },
                     Background = new GameImage { Url = background },
-                    Thumbnail = new GameImage { Url = background },
+                    Thumbnail = new GameImage { Url = thumbnail },
                     Logo = new GameImage { Url = TransparentIcon },
                 },
                 DisplayStatus = GameInfoDisplayStatus.LAUNCHER_GAME_DISPLAY_STATUS_AVAILABLE,
@@ -65,6 +75,8 @@ public sealed class HypergryphClient(HttpClient httpClient)
                     Website = GetWebsite(property.Name, ReadString(product, "iosDeeplink")),
                     SupportsPc = cached?.Hypergryph?.SupportsPc,
                     Version = cached?.Hypergryph?.Version,
+                    LauncherBackground = cached?.Hypergryph?.LauncherBackground,
+                    LauncherCover = cached?.Hypergryph?.LauncherCover,
                 },
             });
         }
@@ -77,7 +89,11 @@ public sealed class HypergryphClient(HttpClient httpClient)
         await Task.WhenAll(games.Select(async game =>
         {
             await concurrency.WaitAsync(cancellationToken);
-            try { await UpdatePcAvailabilityAsync(game.Hypergryph!, cancellationToken); }
+            try
+            {
+                await Task.WhenAll(UpdatePcAvailabilityAsync(game.Hypergryph!, cancellationToken),
+                    UpdateArtworkAsync(game, cancellationToken));
+            }
             finally { concurrency.Release(); }
         }));
         return games.DistinctBy(x => x.GameBiz).ToList();
@@ -90,6 +106,55 @@ public sealed class HypergryphClient(HttpClient httpClient)
         // 未适配的新产品仍有稳定的 ID；下划线必须转义，以免被误读为区服分隔符。
         _ => $"hg-{Uri.EscapeDataString(slug).Replace("_", "%5F")}_cn",
     };
+
+    private async Task UpdateArtworkAsync(GameInfo game, CancellationToken cancellationToken)
+    {
+        var metadata = game.Hypergryph!;
+        try
+        {
+            using var content = JsonContent.Create(new HypergryphArtworkRequest(metadata.AppCode),
+                HypergryphArtworkJsonContext.Default.HypergryphArtworkRequest);
+            using var response = await httpClient.PostAsync(ArtworkUrl, content, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+            if (json.RootElement.ValueKind != JsonValueKind.Object
+                || !json.RootElement.TryGetProperty("proxy_rsps", out var items)
+                || items.ValueKind != JsonValueKind.Array)
+                return;
+
+            foreach (var item in items.EnumerateArray())
+            {
+                switch (ReadString(item, "kind"))
+                {
+                    case "get_main_bg_image":
+                        var background = ReadObject(ReadObject(item, "get_main_bg_image_rsp"), "main_bg_image");
+                        metadata.LauncherBackground = ReadHttpsUrl(background, "url") ?? metadata.LauncherBackground;
+                        break;
+                    case "get_game_image":
+                        var artwork = ReadObject(item, "get_game_image_rsp");
+                        if (ReadString(artwork, "appcode") == metadata.AppCode)
+                            metadata.LauncherCover = ReadHttpsUrl(artwork, "cover")
+                                ?? ReadHttpsUrl(artwork, "bg") ?? metadata.LauncherCover;
+                        break;
+                }
+            }
+
+            // 列表封面与主背景分开；官方未提供封面时复用启动器背景。
+            game.Display.Background = new GameImage
+            {
+                Url = FirstNonEmpty(metadata.LauncherBackground, metadata.LauncherCover, game.Display.Background?.Url),
+            };
+            game.Display.Thumbnail = new GameImage
+            {
+                Url = FirstNonEmpty(metadata.LauncherCover, metadata.LauncherBackground, game.Display.Thumbnail?.Url),
+            };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or OperationCanceledException)
+        {
+            // 图片失败不能丢失目录，也不能用社区占位背景覆盖已缓存的启动器图片。
+        }
+    }
 
     private async Task UpdatePcAvailabilityAsync(HypergryphGameInfo game, CancellationToken cancellationToken)
     {
@@ -174,6 +239,14 @@ public sealed class HypergryphClient(HttpClient httpClient)
     private static string ReadString(JsonElement element, string key) =>
         element.ValueKind == JsonValueKind.Object && element.TryGetProperty(key, out var value)
         && value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : "";
+
+    private static JsonElement ReadObject(JsonElement element, string key) =>
+        element.ValueKind == JsonValueKind.Object && element.TryGetProperty(key, out var value)
+        && value.ValueKind == JsonValueKind.Object ? value : default;
+
+    private static string? ReadHttpsUrl(JsonElement element, string key) =>
+        Uri.TryCreate(ReadString(element, key), UriKind.Absolute, out var uri)
+        && uri.Scheme == Uri.UriSchemeHttps ? uri.AbsoluteUri : null;
 
     private static string FirstNonEmpty(params string?[] values) => values.First(x => !string.IsNullOrWhiteSpace(x))!;
 }

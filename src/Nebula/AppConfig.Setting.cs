@@ -220,10 +220,6 @@ public static partial class AppConfig
         set => DatabaseService.SetValue(nameof(CachedHypergryphGameInfo), value);
     }
 
-    public static string? GetHypergryphExecutable(GameBiz biz) => GetValue<string>(default, $"HypergryphExecutable_{biz}");
-
-    public static void SetHypergryphExecutable(GameBiz biz, string value) => SetValue(value, $"HypergryphExecutable_{biz}");
-
     public static bool AutomaticallyCheckForUpdates
     {
         get => GetValue(true);

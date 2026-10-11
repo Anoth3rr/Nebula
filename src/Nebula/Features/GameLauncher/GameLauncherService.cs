@@ -229,6 +229,8 @@ internal partial class GameLauncherService
     /// <returns></returns>
     public async Task<string> GetGameExeNameAsync(GameId gameId)
     {
+        if (!gameId.GameBiz.IsKnown())
+            return "";
         string? name = GetGameExeName(gameId.GameBiz);
         if (gameId.GameBiz.IsHypergryphGame())
             return name ?? "";
@@ -249,10 +251,6 @@ internal partial class GameLauncherService
     /// <returns></returns>
     public static string? GetGameExeName(GameBiz gameBiz)
     {
-        if (gameBiz.IsHypergryphGame() && AppConfig.GetHypergryphExecutable(gameBiz) is string selected
-            && !string.IsNullOrWhiteSpace(selected) && Path.GetFileName(selected) == selected
-            && selected.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-            return selected;
         string? name = gameBiz.Value switch
         {
             GameBiz.hk4e_cn or GameBiz.hk4e_bilibili => "YuanShen.exe",
@@ -380,6 +378,8 @@ internal partial class GameLauncherService
     /// <returns></returns>
     public async Task<Process?> StartGameAsync(GameId gameId, string? installPath = null)
     {
+        if (!gameId.GameBiz.IsKnown())
+            throw new NotSupportedException($"Game {gameId.GameBiz} is not supported for local launch.");
         const int ERROR_CANCELLED = 0x000004C7;
         try
         {

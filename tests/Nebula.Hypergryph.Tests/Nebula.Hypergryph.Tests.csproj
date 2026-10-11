@@ -9,6 +9,9 @@
     <ProjectReference Include="../../src/Nebula.Core/Nebula.Core.csproj" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <Compile Include="../../src/Nebula/Features/Hypergryph/HypergryphService.cs" Link="HypergryphService.cs" />
+    <Compile Include="../../src/Nebula/Features/Background/GamePosterCache.cs" Link="GamePosterCache.cs" />
+    <Compile Include="../../src/Nebula/Features/GameLauncher/GameCatalogAction.cs" Link="GameCatalogAction.cs" />
+    <Compile Include="../../src/Nebula/Features/GameLauncher/GameState.cs" Link="GameState.cs" />
     <None Update="Fixtures/*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

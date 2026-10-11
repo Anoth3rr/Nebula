@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.Win32;
 using Nebula.Core;
 using Nebula.Core.HoYoPlay;
+using Nebula.Features.Background;
 using Nebula.Features.GameLauncher;
 using Nebula.Features.HoYoPlay;
 using Nebula.Features.Hypergryph;
@@ -674,6 +675,7 @@ public sealed partial class GameSelector : UserControl
     {
         try
         {
+            string? previousPoster = _hypergryphService.GetGameDisplay(CurrentGameBiz)?.Background?.Url;
             var catalogs = await Task.WhenAll(UpdateHoYoPlayGameInfosAsync(), _hypergryphService.UpdateGameInfoListAsync());
             List<GameInfo> gameInfos = catalogs.SelectMany(x => x).ToList();
             InitializeGameServerArea(gameInfos);
@@ -689,6 +691,9 @@ public sealed partial class GameSelector : UserControl
                     icon.UpdateInfo();
                 }
             }
+            if (CurrentGameBiz.IsHypergryphCatalogGame()
+                && previousPoster != _hypergryphService.GetGameDisplay(CurrentGameBiz)?.Background?.Url)
+                WeakReferenceMessenger.Default.Send(new BackgroundChangedMessage());
             await InitializeInstalledGamesCommand.ExecuteAsync(null);
         }
         catch { }
@@ -783,6 +788,8 @@ public sealed partial class GameSelector : UserControl
                     server.IsSelected = true;
                 }
 
+                CurrentGameBiz = server.GameBiz;
+                CurrentGameId = server.GameId;
                 CurrentGameChanged?.Invoke(this, (server.GameId, false));
                 // 关闭弹出的服务器选择菜单
                 if (VisualTreeHelper.GetOpenPopupsForXamlRoot(this.XamlRoot).FirstOrDefault() is Popup popup)
@@ -877,7 +884,7 @@ public sealed partial class GameSelector : UserControl
             {
                 List<FileInfo> _duplicateFiles = new();
                 int serverCount = 0;
-                foreach (GameBizIcon server in display.Servers)
+                foreach (GameBizIcon server in display.Servers.Where(x => x.GameBiz.IsKnown()))
                 {
                     string? installPath = GameLauncherService.GetGameInstallPath(server.GameId);
                     if (Directory.Exists(installPath))

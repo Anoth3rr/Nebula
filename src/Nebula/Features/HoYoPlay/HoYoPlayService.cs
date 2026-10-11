@@ -1,13 +1,11 @@
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 using Nebula.Core;
 using Nebula.Core.HoYoPlay;
+using Nebula.Features.Background;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,20 +16,17 @@ public class HoYoPlayService
 {
 
 
-    private readonly ILogger<HoYoPlayService> _logger;
+    private readonly GamePosterCache _posterCache;
 
     private readonly HoYoPlayClient _client;
-
-    private readonly HttpClient _httpClient;
 
     private readonly IMemoryCache _memoryCache;
 
 
-    public HoYoPlayService(ILogger<HoYoPlayService> logger, HoYoPlayClient client, HttpClient httpClient, IMemoryCache memoryCache)
+    public HoYoPlayService(HoYoPlayClient client, IMemoryCache memoryCache, GamePosterCache posterCache)
     {
-        _logger = logger;
+        _posterCache = posterCache;
         _client = client;
-        _httpClient = httpClient;
         _memoryCache = memoryCache;
     }
 
@@ -84,57 +79,8 @@ public class HoYoPlayService
         }
         string json = JsonSerializer.Serialize(infos);
         AppConfig.CachedGameInfo = json;
-        _ = DownloadGameVersionPosterAsync(infos);
+        _ = _posterCache.DownloadAsync(infos);
         return infos;
-    }
-
-
-
-    private async Task DownloadGameVersionPosterAsync(List<GameInfo> infos)
-    {
-        try
-        {
-            List<string> urls = new();
-            foreach (var info in infos)
-            {
-                if (!string.IsNullOrWhiteSpace(info.Display.Background?.Url))
-                {
-                    urls.Add(info.Display.Background.Url);
-                }
-            }
-            if (AppConfig.CacheFolder is not null)
-            {
-                string bg = Path.Combine(AppConfig.CacheFolder, "bg");
-                Directory.CreateDirectory(bg);
-                await Parallel.ForEachAsync(infos, async (info, _) =>
-                {
-                    if (string.IsNullOrWhiteSpace(info.Display.Background?.Url))
-                    {
-                        return;
-                    }
-                    string url = info.Display.Background.Url;
-                    try
-                    {
-                        string name = Path.GetFileName(url);
-                        string path = Path.Combine(bg, name);
-                        if (!File.Exists(path))
-                        {
-                            byte[] bytes = await _httpClient.GetByteArrayAsync(url);
-                            await File.WriteAllBytesAsync(path, bytes);
-                        }
-                        AppConfig.SetVersionPoster(info.GameBiz, name);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Download image: {url}", url);
-                    }
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, nameof(DownloadGameVersionPosterAsync));
-        }
     }
 
 

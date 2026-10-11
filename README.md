@@ -3,7 +3,7 @@ English | [简体中文](./docs/README.zh-CN.md) | [日本語](./docs/README.ja-
 
 # Nebula
 
-Nebula is an open-source third-party launcher built to integrate games from multiple publishers. It supports all PC games from HoYoverse, all PC games from Hypergryph, and Wuthering Waves, with the goal of integrating selected domestic anime-style games. In addition to the basic functions of a launcher, I will also add some extra features based on personal needs, such as:
+Nebula is an open-source third-party launcher built to integrate games from multiple publishers. It integrates the HoYoPlay catalog, the official Hypergryph catalog, and Wuthering Waves. Local launch support for Hypergryph is limited to Arknights and Arknights: Endfield; other catalog entries remain available for browsing and visiting their official websites. See the [Hypergryph catalog documentation](docs/HypergryphCatalog.zh-CN.md) for coverage. In addition to the basic functions of a launcher, I will also add some extra features based on personal needs, such as:
 
 -  Record game time
 -  Switch game accounts

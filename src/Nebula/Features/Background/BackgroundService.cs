@@ -101,7 +101,8 @@ public class BackgroundService
         {
             return null;
         }
-        if (GetLocalLauncherBackgroundFile(gameId.GameBiz) is string localPath)
+        if (!gameId.GameBiz.IsHypergryphCatalogGame()
+            && GetLocalLauncherBackgroundFile(gameId.GameBiz) is string localPath)
         {
             return localPath;
         }
@@ -113,6 +114,13 @@ public class BackgroundService
         if (File.Exists(path))
         {
             return path;
+        }
+        if (gameId.GameBiz.IsHypergryphCatalogGame())
+        {
+            path = GetBgFilePath(AppConfig.GetVersionPoster(gameId.GameBiz));
+            if (File.Exists(path))
+                return path;
+            return GetLocalLauncherBackgroundFile(gameId.GameBiz);
         }
         return null;
     }
@@ -130,18 +138,18 @@ public class BackgroundService
         if (!gameId.GameBiz.IsHoYoPlayGame())
         {
             var localBackgrounds = new List<GameBackground>();
-            if (TryGetCustomBgFilePath(gameId, out string? customPath))
-            {
-                localBackgrounds.Add(GameBackground.FromCustomFile(customPath));
-            }
+            var display = gameId.GameBiz.IsHypergryphCatalogGame()
+                ? AppConfig.GetService<Nebula.Features.Hypergryph.HypergryphService>().GetGameDisplay(gameId.GameBiz)
+                : (gameId as GameInfo)?.Display;
+            var poster = display?.Background?.Url;
+            if (Uri.TryCreate(poster, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
+                localBackgrounds.Add(GameBackground.FromPosterUrl(poster));
             if (GetLocalLauncherBackgroundFile(gameId.GameBiz) is string localPath)
             {
                 localBackgrounds.Add(GameBackground.FromCustomFile(localPath));
             }
-            var poster = AppConfig.GetService<Nebula.Features.Hypergryph.HypergryphService>()
-                .GetGameInfo(gameId.GameBiz)?.Display.Background?.Url;
-            if (Uri.TryCreate(poster, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
-                localBackgrounds.Add(GameBackground.FromPosterUrl(poster));
+            if (TryGetCustomBgFilePath(gameId, out string? customPath))
+                localBackgrounds.Add(GameBackground.FromCustomFile(customPath));
             return localBackgrounds;
         }
         GameBackgroundInfo backgroundInfo = await _hoYoPlayService.GetGameBackgroundAsync(gameId, cancellationToken);
@@ -162,7 +170,8 @@ public class BackgroundService
 
     public async Task<GameBackground?> GetSuggestedGameBackgroundAsync(GameId gameId, CancellationToken cancellationToken = default)
     {
-        if (!gameId.GameBiz.IsHoYoPlayGame() && GetLocalLauncherBackgroundFile(gameId.GameBiz) is string localPath)
+        if (!gameId.GameBiz.IsHoYoPlayGame() && !gameId.GameBiz.IsHypergryphCatalogGame()
+            && GetLocalLauncherBackgroundFile(gameId.GameBiz) is string localPath)
         {
             return GameBackground.FromCustomFile(localPath);
         }
@@ -217,6 +226,8 @@ public class BackgroundService
     /// <returns></returns>
     public static string? GetFallbackBackgroundImage(GameId gameId)
     {
+        if (gameId.GameBiz.IsHypergryphCatalogGame() && GetCachedBackgroundFile(gameId) is string cachedPath)
+            return cachedPath;
         if (GetLocalLauncherBackgroundFile(gameId.GameBiz) is string localPath)
         {
             return localPath;

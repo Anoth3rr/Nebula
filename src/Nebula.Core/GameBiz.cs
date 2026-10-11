@@ -138,7 +138,11 @@ public record struct GameBiz
         _ => false,
     };
 
-    public bool IsHypergryphGame() => Game is arknights or endfield
+    // 与 HoYoPlay 一样，仅显式适配的游戏进入本地启动白名单。
+    public bool IsHypergryphGame() => Game is arknights or endfield;
+
+    // 官方目录中的其他产品仍可展示，但不能据此获得本地启动能力。
+    public bool IsHypergryphCatalogGame() => IsHypergryphGame()
         || Game.StartsWith("hg-", StringComparison.Ordinal);
 
 

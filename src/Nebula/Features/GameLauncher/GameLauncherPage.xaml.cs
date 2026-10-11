@@ -67,6 +67,7 @@ public sealed partial class GameLauncherPage : PageBase
     {
         UpdateHypergryphLauncherView();
         InitializeGameFeature();
+        OpenGameLauncherSettingDialogCommand.NotifyCanExecuteChanged();
         CheckGameVersion();
         UpdateGameInstallTask();
         CheckCloudGame();
@@ -162,8 +163,7 @@ public sealed partial class GameLauncherPage : PageBase
             case GameState.ComingSoon:
                 break;
             case GameState.OpenWebsite:
-                var website = _hypergryphService.GetGameInfo(CurrentGameBiz)?.Hypergryph?.Website;
-                if (Uri.TryCreate(website, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
+                if (GameCatalogAction.GetWebsite(GetCurrentCatalogInfo()) is Uri uri)
                     await Launcher.LaunchUriAsync(uri);
                 break;
             case GameState.LocateGame:
@@ -290,16 +290,18 @@ public sealed partial class GameLauncherPage : PageBase
 
     private bool isGameExeExists;
 
+    private GameInfo? GetCurrentCatalogInfo() => CurrentGameBiz.IsHypergryphCatalogGame()
+        ? _hypergryphService.GetGameInfo(CurrentGameBiz) ?? CurrentGameId as GameInfo
+        : CurrentGameId as GameInfo;
 
 
     private async void CheckGameVersion()
     {
         try
         {
-            if (CurrentGameBiz.IsHypergryphGame() && !CurrentGameBiz.IsKnown()
-                && _hypergryphService.GetGameInfo(CurrentGameBiz)?.Hypergryph?.SupportsPc is not true)
+            if (GameCatalogAction.GetDisplayOnlyState(CurrentGameBiz, GetCurrentCatalogInfo()) is GameState catalogState)
             {
-                GameState = GameState.OpenWebsite;
+                GameState = catalogState;
                 return;
             }
             GameInstallPath = GameLauncherService.GetGameInstallPath(CurrentGameId, out bool storageRemoved);
@@ -357,19 +359,11 @@ public sealed partial class GameLauncherPage : PageBase
     /// <returns></returns>
     private async Task LocateGameAsync()
     {
+        if (!CurrentGameBiz.IsKnown())
+            return;
         try
         {
-            string? selectedExecutable = null;
-            string? folder;
-            if (CurrentGameBiz.IsHypergryphGame() && !CurrentGameBiz.IsKnown())
-            {
-                selectedExecutable = await FileDialogHelper.PickSingleFileAsync(this.XamlRoot, ("Executable", ".exe"));
-                folder = selectedExecutable is null ? null : Path.GetDirectoryName(selectedExecutable);
-            }
-            else
-            {
-                folder = await FileDialogHelper.PickFolderAsync(this.XamlRoot);
-            }
+            string? folder = await FileDialogHelper.PickFolderAsync(this.XamlRoot);
             if (!string.IsNullOrWhiteSpace(folder))
             {
                 if (DriveHelper.GetDriveType(folder) is DriveType.Network && !new Uri(folder).IsUnc)
@@ -378,8 +372,6 @@ public sealed partial class GameLauncherPage : PageBase
                 }
                 else
                 {
-                    if (selectedExecutable is not null)
-                        AppConfig.SetHypergryphExecutable(CurrentGameBiz, Path.GetFileName(selectedExecutable));
                     GameLauncherService.ChangeGameInstallPath(CurrentGameId, folder);
                     CheckGameVersion();
                     WeakReferenceMessenger.Default.Send(new GameInstallPathChangedMessage());
@@ -886,7 +878,9 @@ public sealed partial class GameLauncherPage : PageBase
 
 
 
-    [RelayCommand]
+    private bool CanOpenGameLauncherSettings() => CurrentGameBiz.IsKnown();
+
+    [RelayCommand(CanExecute = nameof(CanOpenGameLauncherSettings))]
     private async Task OpenGameLauncherSettingDialogAsync()
     {
         await new GameLauncherSettingDialog { CurrentGameId = this.CurrentGameId, XamlRoot = this.XamlRoot }.ShowAsync();
@@ -932,6 +926,8 @@ public sealed partial class GameLauncherPage : PageBase
     {
         if (message.GameBackground is null)
         {
+            if (!CurrentGameBiz.IsKnown())
+                CheckGameVersion();
             _ = InitializeBackgameImageSwitcherAsync();
         }
     }
@@ -943,7 +939,7 @@ public sealed partial class GameLauncherPage : PageBase
         {
             CanStopVideo = false;
             BackgroundImages = await _backgroundService.GetGameBackgroundsAsync(CurrentGameId);
-            if (IsHypergryphLauncherView)
+            if (CurrentGameBiz.Game is GameBiz.wutheringwaves)
             {
                 Border_SwitchBackgroundImage.Visibility = Visibility.Collapsed;
                 return;

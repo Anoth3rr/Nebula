@@ -1,0 +1,71 @@
+{
+  "GzD1CpaWgmSq1wew": {
+    "proxy_rsps": [
+      {
+        "kind": "get_main_bg_image",
+        "get_main_bg_image_rsp": {
+          "data_version": "",
+          "main_bg_image": {
+            "url": "https://hg-utils-public.hycdn.cn/hg-utils/prod/eppcsuwqpaueijqk/GzD1CpaWgmSq1wew/7b/26/7b26c916c0624b3bf5e4ab7fb775e29f.png",
+            "md5": "c162c8e02d928695291f8762f734b6a5",
+            "video_url": "https://hg-utils-public.hycdn.cn/hg-utils/prod/eppcsuwqpaueijqk/GzD1CpaWgmSq1wew/1d/01/1d01eb52eb6967a1a51172009dca788f.mp4"
+          }
+        }
+      },
+      {
+        "kind": "get_game_image",
+        "get_game_image_rsp": {
+          "appcode": "GzD1CpaWgmSq1wew",
+          "cover": "",
+          "bg": "https://hg-utils-public.hycdn.cn/hg-utils/prod/eppcsuwqpaueijqk/GzD1CpaWgmSq1wew/75/e6/75e6a3b6423c8a386094684810632044.webp"
+        }
+      }
+    ]
+  },
+  "6LL0KJuqHBVz33WK": {
+    "proxy_rsps": [
+      {
+        "kind": "get_main_bg_image",
+        "get_main_bg_image_rsp": {
+          "data_version": "",
+          "main_bg_image": {
+            "url": "https://hg-utils-public.hycdn.cn/hg-utils/prod/eppcsuwqpaueijqk/6LL0KJuqHBVz33WK/e9/b8/e9b80ea8683306f11822df825aff40f7.png",
+            "md5": "07e28d7973b2f4f1fcba8f6b7e088be9",
+            "video_url": "https://hg-utils-public.hycdn.cn/hg-utils/prod/eppcsuwqpaueijqk/6LL0KJuqHBVz33WK/60/fe/60fe35f1733895b218f2e046e171c6c0.mp4"
+          }
+        }
+      },
+      {
+        "kind": "get_game_image",
+        "get_game_image_rsp": {
+          "appcode": "6LL0KJuqHBVz33WK",
+          "cover": "",
+          "bg": ""
+        }
+      }
+    ]
+  },
+  "Vp2jukCCSUGztqli": {
+    "proxy_rsps": [
+      {
+        "kind": "get_main_bg_image",
+        "get_main_bg_image_rsp": {
+          "data_version": "",
+          "main_bg_image": {
+            "url": "https://hg-utils-public.hycdn.cn/hg-utils/prod/eppcsuwqpaueijqk/Vp2jukCCSUGztqli/6d/6f/6d6ffe962ebc3f3b8e6218a8b840b9e3.webp",
+            "md5": "048afb450fd1cd6f7dbcc98d6d31a20a",
+            "video_url": ""
+          }
+        }
+      },
+      {
+        "kind": "get_game_image",
+        "get_game_image_rsp": {
+          "appcode": "",
+          "cover": "",
+          "bg": ""
+        }
+      }
+    ]
+  }
+}

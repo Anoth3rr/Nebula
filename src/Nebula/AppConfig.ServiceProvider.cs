@@ -63,6 +63,7 @@ public static partial class AppConfig
             sc.AddSingleton<HoYoPlayService>();
             sc.AddHttpClient<HypergryphClient>(client => client.Timeout = TimeSpan.FromSeconds(10));
             sc.AddSingleton<HypergryphService>();
+            sc.AddSingleton<GamePosterCache>();
             sc.AddSingleton<BackgroundService>();
             sc.AddSingleton<GameLauncherService>();
             sc.AddSingleton<GamePackageService>();

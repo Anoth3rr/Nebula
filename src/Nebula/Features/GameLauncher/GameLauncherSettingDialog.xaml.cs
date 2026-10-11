@@ -260,7 +260,7 @@ public sealed partial class GameLauncherSettingDialog : ContentDialog
     {
         try
         {
-            if (CurrentGameBiz.IsHypergryphGame()
+            if (CurrentGameBiz.IsHypergryphCatalogGame()
                 && AppConfig.GetService<HypergryphService>().GetGameInfo(CurrentGameBiz) is GameInfo hypergryphInfo)
             {
                 CurrentGameBizIcon = new GameBizIcon(hypergryphInfo);
@@ -268,6 +268,10 @@ public sealed partial class GameLauncherSettingDialog : ContentDialog
             else if (CurrentGameId.GameBiz.IsKnown())
             {
                 CurrentGameBizIcon = new GameBizIcon(CurrentGameId.GameBiz);
+            }
+            else if (CurrentGameId is GameInfo catalogInfo)
+            {
+                CurrentGameBizIcon = new GameBizIcon(catalogInfo);
             }
             else
             {
@@ -401,6 +405,8 @@ public sealed partial class GameLauncherSettingDialog : ContentDialog
     [RelayCommand]
     private async Task LocateGameAsync()
     {
+        if (!CurrentGameBiz.IsKnown())
+            return;
         try
         {
             string? previousInstallPath = InstallPath;
