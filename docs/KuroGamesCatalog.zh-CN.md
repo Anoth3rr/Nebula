@@ -41,13 +41,22 @@
 - [`GameBiz.cs`](../src/Nebula.Core/GameBiz.cs) 当前只定义 `wutheringwaves_cn` 和 `wutheringwaves_global`，没有战双的游戏标识。
 - [`GameRegistry.cs`](../src/Nebula.Core/GameRegistry.cs) 当前只登记鸣潮的两个 Windows 注册表路径。
 - [`GameLauncherService.cs`](../src/Nebula/Features/GameLauncher/GameLauncherService.cs) 对鸣潮使用静态可执行文件候选名；本地版本读取仍只走 HoYoPlay 分支，库洛更新协议尚未接入。
-- 本次没有新增库洛代码，也没有把社区逆向配置当成官方全量目录使用。
+- 本次只新增已知鸣潮区服的更新链接配置，没有把社区逆向配置当成官方全量目录使用。
+
+## Nebula 的链接配置
+
+当前已在 `KuroGameUpdateLinks` 中配置鸣潮两个区服的官方地址：
+
+- 国服：`G152 / 10003`，游戏清单和启动器配置使用 `prod-cn-alicdn-gamestarter.kurogame.com`；
+- 全球服：`G153 / 50004`，游戏清单和启动器配置使用 `prod-alicdn-gamestarter.kurogame.com`。
+
+两个条目会写入通用 `GameUpdateInfo` 的 `manifest_url` 和 `launcher_url`。这些地址用于读取版本和资源清单，当前仍未接入库洛补丁下载、校验和安装流程；appKey 属于启动器发布配置，后续若官方轮换需要更新配置。
 
 ## 后续建议
 
-若要接入库洛，建议分成三个独立部分：
+若要继续接入库洛的实际更新能力，建议分成三个独立部分：
 
-1. 用静态、可更新的配置维护已知游戏、区域、GID 和 appId；
+1. 继续用静态、可更新的配置维护已知游戏、区域、GID 和 appId；
 2. 为每个已配置游戏读取启动器版本、游戏版本和背景素材，并复用现有海报缓存；
 3. 将战双 token 作为用户本地或启动器提取配置处理，不把它写死在程序中。
 

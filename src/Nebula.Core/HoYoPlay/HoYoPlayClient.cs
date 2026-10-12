@@ -102,6 +102,19 @@ public class HoYoPlayClient
 
 
     /// <summary>
+    /// 构造 HoYoPlay 游戏更新清单地址。
+    /// </summary>
+    public static string GetGamePackagesUrl(GameBiz gameBiz, string gameId, string language = "zh-cn")
+    {
+        string launcherId = LauncherId.FromGameBiz(gameBiz)
+            ?? throw new ArgumentOutOfRangeException(nameof(gameBiz), $"Unknown game biz ({gameBiz}).");
+        return BuildUrl("getGamePackages", launcherId, language)
+            + $"&game_ids[]={Uri.EscapeDataString(gameId)}";
+    }
+
+
+
+    /// <summary>
     /// 游戏信息（包括游戏 ID、名称、图标、背景图等）
     /// </summary>
     /// <param name="launcherId"></param>

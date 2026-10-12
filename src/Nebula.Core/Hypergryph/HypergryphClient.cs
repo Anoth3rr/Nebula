@@ -14,7 +14,8 @@ public sealed class HypergryphClient(HttpClient httpClient)
     public const string CatalogUrl = "https://assets.skland.com/common-config/json/game-config.json";
     public const string CommunityUrl = "https://zonai.skland.com/web/v1/game";
     public const string ArtworkUrl = "https://launcher.hypergryph.com/api/proxy/web/batch_proxy";
-    private const string LauncherUrl = "https://launcher.hypergryph.com/api/game/get_latest";
+    public const string LatestUrl = "https://launcher.hypergryph.com/api/game/get_latest";
+    private const string LauncherAppCode = "abYeZZ16BPluCFyT";
     private const string TransparentIcon = "ms-appx:///Assets/Image/Transparent.png";
 
     public async Task<List<GameInfo>> GetGamesAsync(
@@ -75,10 +76,17 @@ public sealed class HypergryphClient(HttpClient httpClient)
                     Website = GetWebsite(property.Name, ReadString(product, "iosDeeplink")),
                     SupportsPc = cached?.Hypergryph?.SupportsPc,
                     Version = cached?.Hypergryph?.Version,
+                    PackageUrl = cached?.Hypergryph?.PackageUrl,
                     LauncherBackground = cached?.Hypergryph?.LauncherBackground,
                     LauncherCover = cached?.Hypergryph?.LauncherCover,
                 },
             });
+            games[^1].Update = new GameUpdateInfo
+            {
+                Provider = "Hypergryph",
+                ManifestUrl = GetLatestUrl(appCode),
+                PackageUrl = cached?.Update?.PackageUrl,
+            };
         }
 
         // 空/错误响应不能覆盖上一次的可用目录。
@@ -96,6 +104,11 @@ public sealed class HypergryphClient(HttpClient httpClient)
             }
             finally { concurrency.Release(); }
         }));
+        foreach (var game in games)
+        {
+            if (game.Update is not null)
+                game.Update.PackageUrl = game.Hypergryph?.PackageUrl;
+        }
         return games.DistinctBy(x => x.GameBiz).ToList();
     }
 
@@ -106,6 +119,12 @@ public sealed class HypergryphClient(HttpClient httpClient)
         // 未适配的新产品仍有稳定的 ID；下划线必须转义，以免被误读为区服分隔符。
         _ => $"hg-{Uri.EscapeDataString(slug).Replace("_", "%5F")}_cn",
     };
+
+    /// <summary>
+    /// 构造鹰角启动器的 PC 版本查询地址。
+    /// </summary>
+    public static string GetLatestUrl(string appCode) =>
+        $"{LatestUrl}?appcode={Uri.EscapeDataString(appCode)}&channel=1&sub_channel=1&version=&launcher_appcode={LauncherAppCode}";
 
     private async Task UpdateArtworkAsync(GameInfo game, CancellationToken cancellationToken)
     {
@@ -160,7 +179,7 @@ public sealed class HypergryphClient(HttpClient httpClient)
     {
         try
         {
-            var url = $"{LauncherUrl}?appcode={Uri.EscapeDataString(game.AppCode)}&channel=1&sub_channel=1&version=&launcher_appcode=abYeZZ16BPluCFyT";
+            var url = GetLatestUrl(game.AppCode);
             using var response = await httpClient.GetAsync(url, cancellationToken);
             using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
             var root = json.RootElement;
@@ -172,6 +191,7 @@ public sealed class HypergryphClient(HttpClient httpClient)
             {
                 game.SupportsPc = false;
                 game.Version = null;
+                game.PackageUrl = null;
                 return;
             }
             response.EnsureSuccessStatusCode();
@@ -184,6 +204,8 @@ public sealed class HypergryphClient(HttpClient httpClient)
             {
                 game.SupportsPc = true;
                 game.Version = version;
+                // 只有通过 HTTPS、Windows 路径和版本号校验后才公开包地址。
+                game.PackageUrl = files.AbsoluteUri;
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }

@@ -25,6 +25,10 @@ Nebula 是一个整合多个厂商游戏的开源第三方启动器，目前接�
 
 库洛目前核查到的是逐游戏启动器和更新 CDN 协议，没有找到公开的全量游戏目录接口；鸣潮可以读取已知区域的版本和启动器素材，战双需要运行时 token。详细结论见 [库洛游戏目录与启动器协议](KuroGamesCatalog.zh-CN.md)。
 
+各厂商游戏条目现在统一保存官方更新源：HoYoPlay 使用 `getGamePackages`，鹰角使用 `get_latest` 并缓存当前 Windows 包地址，鸣潮使用国服/全球服 CDN 游戏清单和启动器配置地址。链接配置说明见 [开发进度核查](DevelopmentStatus.zh-CN.md) 与 [库洛游戏目录与启动器协议](KuroGamesCatalog.zh-CN.md)。
+
+具体的厂商、区服和字段映射见 [游戏更新链接配置](GameUpdateLinks.zh-CN.md)。
+
 ### v0.0.0
 
 - 新增明日方舟、明日方舟：终末地、鸣潮的支持入口，并在可用范围内加入国服与国际服标识。

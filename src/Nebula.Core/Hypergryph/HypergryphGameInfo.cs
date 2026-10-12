@@ -8,6 +8,8 @@ public sealed class HypergryphGameInfo
     public string Website { get; set; } = "https://www.hypergryph.com/";
     public bool? SupportsPc { get; set; }
     public string? Version { get; set; }
+    /// <summary>当前 Windows 完整包地址；随版本更新，仅用于诊断和后续更新器。</summary>
+    public string? PackageUrl { get; set; }
     public string? LauncherBackground { get; set; }
     public string? LauncherCover { get; set; }
 }

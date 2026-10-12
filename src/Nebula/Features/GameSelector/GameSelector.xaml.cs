@@ -168,7 +168,10 @@ public sealed partial class GameSelector : UserControl
             string? json = AppConfig.CachedGameInfo;
             if (!string.IsNullOrWhiteSpace(json))
             {
-                return JsonSerializer.Deserialize<List<GameInfo>>(json) ?? [];
+                var infos = JsonSerializer.Deserialize<List<GameInfo>>(json) ?? [];
+                foreach (var info in infos)
+                    info.Update ??= GameUpdateLinks.Get(info);
+                return infos;
             }
         }
         catch { }
@@ -649,6 +652,7 @@ public sealed partial class GameSelector : UserControl
                     Logo = new GameImage { Url = "ms-appx:///Assets/Image/Transparent.png" },
                 },
                 GameServerConfigs = [],
+                Update = GameUpdateLinks.Get(GameId.FromGameBiz(displayBiz)!),
             }
         });
     }

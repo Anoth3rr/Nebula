@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Nebula.Core;
 
 namespace Nebula.Core.HoYoPlay;
 
@@ -8,6 +9,13 @@ namespace Nebula.Core.HoYoPlay;
 /// </summary>
 public class GameInfo : GameId
 {
+
+    /// <summary>
+    /// 官方游戏更新源。该字段只描述更新入口，不表示 Nebula 已实现该厂商的安装器。
+    /// </summary>
+    [JsonPropertyName("update")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public GameUpdateInfo? Update { get; set; }
 
     [JsonPropertyName("hypergryph")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

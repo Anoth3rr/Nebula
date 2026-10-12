@@ -31,6 +31,18 @@ public sealed class HypergryphService(HypergryphClient client, ILogger<Hypergryp
             logger.LogWarning(ex, "Read cached Hypergryph catalog");
             _games = [];
         }
+        foreach (var game in _games)
+        {
+            if (game.Update is null && game.Hypergryph is { AppCode.Length: > 0 } metadata)
+            {
+                game.Update = new GameUpdateInfo
+                {
+                    Provider = "Hypergryph",
+                    ManifestUrl = HypergryphClient.GetLatestUrl(metadata.AppCode),
+                    PackageUrl = metadata.PackageUrl,
+                };
+            }
+        }
         return new(_games);
     }
 

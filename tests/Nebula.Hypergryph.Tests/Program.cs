@@ -34,6 +34,41 @@ await Test("Existing identities remain compatible with installed games", async (
     foreach (GameBiz biz in new GameBiz[] { GameBiz.arknights_cn, GameBiz.endfield_cn })
         Assert(games.Single(x => x.GameBiz == biz).Id == GameId.FromGameBiz(biz)!.Id, "legacy game ID changed");
 });
+await Test("Every supported catalog entry exposes its official update source", async () =>
+{
+    var games = await Client().GetGamesAsync();
+    foreach (var game in games)
+    {
+        Assert(game.Update is { Provider: "Hypergryph", ManifestUrl: not null } && game.Hypergryph is not null,
+            "catalog entry missing Hypergryph provider");
+        Assert(game.Update!.ManifestUrl == HypergryphClient.GetLatestUrl(game.Hypergryph!.AppCode),
+            "catalog entry has an unexpected latest endpoint");
+    }
+
+    var arknights = games.Single(x => x.GameBiz == GameBiz.arknights_cn);
+    var endfield = games.Single(x => x.GameBiz == GameBiz.endfield_cn);
+    Assert(arknights.Update!.PackageUrl == arknights.Hypergryph!.PackageUrl
+        && arknights.Update.PackageUrl!.Contains("/Windows/", StringComparison.OrdinalIgnoreCase),
+        "Windows package URL was not copied into the update source");
+    Assert(endfield.Update!.PackageUrl == endfield.Hypergryph!.PackageUrl,
+        "second PC product package URL was not copied into the update source");
+    Assert(games.Where(x => x.Hypergryph?.SupportsPc == false)
+        .All(x => x.Update!.PackageUrl is null), "mobile-only product exposes a package URL");
+});
+await Test("Known vendor update links use official endpoint formats", () =>
+{
+    var hoyo = GameUpdateLinks.Get(new GameId { Id = "1Z8W5NHUQb", GameBiz = GameBiz.hk4e_cn });
+    Assert(hoyo?.Provider == "HoYoPlay" && hoyo.ManifestUrl!.Contains("getGamePackages")
+        && hoyo.ManifestUrl.Contains("game_ids[]=1Z8W5NHUQb"), "HoYoPlay endpoint is not configured");
+
+    var kuroCn = GameUpdateLinks.Get(GameId.FromGameBiz(GameBiz.wutheringwaves_cn)!);
+    var kuroGlobal = GameUpdateLinks.Get(GameId.FromGameBiz(GameBiz.wutheringwaves_global)!);
+    Assert(kuroCn?.Provider == "Kuro" && kuroCn.ManifestUrl!.Contains("G152/10003_")
+        && kuroCn.LauncherUrl!.Contains("/launcher/launcher/10003_"), "Kuro CN endpoint is not configured");
+    Assert(kuroGlobal?.Provider == "Kuro" && kuroGlobal.ManifestUrl!.Contains("G153/50004_"),
+        "Kuro global endpoint is not configured");
+    return Task.CompletedTask;
+});
 await Test("Only Arknights and Endfield are in the supported Hypergryph whitelist", async () =>
 {
     var games = await Client().GetGamesAsync();

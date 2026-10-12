@@ -13,6 +13,8 @@ Nebula 接入以下已实测的官方数据源：
 3. [森空岛社区配置](https://zonai.skland.com/web/v1/game)：按产品名称补充图标，以及启动器未提供的背景。社区中的「纳斯特港」「开拓芯」不作为游戏导入。
 4. 鹰角启动器 `GET https://launcher.hypergryph.com/api/game/get_latest`：使用目录返回的 `appcode`，并传入 `channel=1`、`sub_channel=1`、空 `version`、`launcher_appcode=abYeZZ16BPluCFyT`，查询中国官服 PC 发行信息。存在 HTTPS 的 `pkg.file_path`、Windows 路径及版本号才确认提供 PC 资源；此结果不会自动扩大白名单。
 
+目录条目现在同时写入统一的 `GameUpdateInfo`：`manifest_url` 是按 `appcode` 生成的 `get_latest` 查询地址，`package_url` 是通过 HTTPS、Windows 路径和版本号校验后的当前完整包地址。后者会随版本刷新并保留在目录缓存中，不能当作永久固定链接。
+
 以上接口不需要账号、token 或登录。当前接入的是中国官方产品配置；国际服与 B 服仍使用原有入口，并不据此自动生成或推测地区发行版本。产品目录也不保证覆盖鹰角未公布、未纳入此配置，或由其他平台单独发行的全部作品。
 
 2026-10-11 实测结果：

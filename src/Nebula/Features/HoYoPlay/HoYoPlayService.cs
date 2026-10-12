@@ -42,6 +42,7 @@ public class HoYoPlayService
             var list = await _client.GetGameInfoAsync(LauncherId.FromGameId(gameId)!, lang, cancellationToken);
             foreach (var item in list)
             {
+                item.Update ??= GameUpdateLinks.Get(item);
                 _memoryCache.Set($"{nameof(GameInfo)}_{item.Id}", item, TimeSpan.FromMinutes(10));
             }
             info = list.FirstOrDefault(x => x == gameId);
@@ -75,6 +76,7 @@ public class HoYoPlayService
         }
         foreach (var item in infos)
         {
+            item.Update ??= GameUpdateLinks.Get(item);
             _memoryCache.Set($"{nameof(GameInfo)}_{item.Id}", item, TimeSpan.FromMinutes(10));
         }
         string json = JsonSerializer.Serialize(infos);
