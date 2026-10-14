@@ -181,8 +181,9 @@ public sealed partial class PreDownloadButton : UserControl
         State = task.State;
         long total = task.Progress_DownloadTotalBytes;
         long finish = task.Progress_DownloadFinishBytes;
-        ProgressPercentText = $"{(double)finish / total:P1}";
+        ProgressPercentText = total > 0 ? $"{Math.Clamp((double)finish / total, 0, 1):P1}" : "0.0%";
         DownloadBytesText = ToBytesText(finish, total);
+        ErrorMessage = task.ErrorMessage;
         if (State is GameInstallState.Paused or GameInstallState.Queueing or GameInstallState.Error)
         {
             DownloadSpeedText = "- KB/s";
@@ -201,6 +202,14 @@ public sealed partial class PreDownloadButton : UserControl
             ErrorMessage = null;
         }
         UpdateButtonState();
+    }
+
+    public void ResetState()
+    {
+        State = GameInstallState.Stop;
+        ProgressPercentText = "0.0%";
+        DownloadBytesText = DownloadSpeedText = RemainTimeText = ErrorMessage = null;
+        Popup_DownloadProgress.IsOpen = false;
     }
 
 

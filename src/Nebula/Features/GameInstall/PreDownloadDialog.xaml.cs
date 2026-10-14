@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Nebula.Core;
 using Nebula.Core.HoYoPlay;
+using Nebula.Core.Predownload;
 using Nebula.Features.HoYoPlay;
 using Nebula.Helpers;
 using Nebula.RPC.GameInstall;
@@ -90,6 +91,7 @@ public sealed partial class PreDownloadDialog : ContentDialog
     private AudioLanguage _audioLanguage;
 
     private List<string> _ignoreMatchingFields;
+    private GamePredownloadPlan? _externalPlan;
 
     private async Task GetGamePackageAsync()
     {
@@ -104,6 +106,23 @@ public sealed partial class PreDownloadDialog : ContentDialog
                 return;
             }
             _installationPath = installPath;
+            if (!CurrentGameId.GameBiz.IsHoYoPlayGame())
+            {
+                _externalPlan = await AppConfig.GetService<GamePredownloadClient>().GetAsync(CurrentGameId.GameBiz, installPath);
+                if (_externalPlan is null)
+                {
+                    TextBlock_PredownloadUnavailable.Visibility = Visibility.Visible;
+                    return;
+                }
+                PackageSizeBytes = _externalPlan.DownloadSize;
+                AvailableSpaceBytes = DriveHelper.GetDriveAvailableSpace(installPath);
+                TextBlock_UnzipSpace.Visibility = Visibility.Collapsed;
+                TextBlock_CacheNotice.Text = string.Format(Lang.PreDownloadDialog_CacheNotice,
+                    _externalPlan.Version, GamePredownloadCache.GetDirectory(_externalPlan, installPath));
+                TextBlock_CacheNotice.Visibility = Visibility.Visible;
+                CheckCanPreDownload();
+                return;
+            }
             // 本地版本
             Version? version = await _gamePackageService.GetLocalGameVersionAsync(CurrentGameId, _installationPath);
             if (version is null)
@@ -164,6 +183,7 @@ public sealed partial class PreDownloadDialog : ContentDialog
         catch (Exception ex)
         {
             _logger.LogError(ex, "Get game package.");
+            TextBlock_PredownloadUnavailable.Visibility = Visibility.Visible;
         }
     }
 
@@ -317,6 +337,14 @@ public sealed partial class PreDownloadDialog : ContentDialog
     {
         try
         {
+            if (_externalPlan is not null)
+            {
+                long remaining = GamePredownloadCache.GetRemainingBytes(_externalPlan, _installationPath);
+                bool enoughSpace = AvailableSpaceBytes >= remaining;
+                TextBlock_InsufficientSpace.Visibility = enoughSpace ? Visibility.Collapsed : Visibility.Visible;
+                Button_StartPredownload.IsEnabled = enoughSpace;
+                return;
+            }
             if (_gamePackage is not null || _gameSophonChunkBuild is not null || _gameSophonPatchBuild is not null)
             {
                 if (Path.IsPathFullyQualified(_installationPath) && !string.IsNullOrWhiteSpace(_localGameVersion))
@@ -344,6 +372,13 @@ public sealed partial class PreDownloadDialog : ContentDialog
     {
         try
         {
+            if (_externalPlan is not null)
+            {
+                AvailableSpaceBytes = DriveHelper.GetDriveAvailableSpace(_installationPath);
+                CheckCanPreDownload();
+                if (!Button_StartPredownload.IsEnabled)
+                    return;
+            }
             GameInstallContext? task = await _gameInstallService.StartPredownloadAsync(CurrentGameId, _installationPath, _audioLanguage);
             if (task is not null && task.State is not GameInstallState.Stop and not GameInstallState.Error)
             {

@@ -2729,4 +2729,10 @@
   <data name="LauncherPage_OpenOfficialWebsite" xml:space="preserve">
     <value>查看官网</value>
   </data>
+  <data name="PreDownloadDialog_CacheNotice" xml:space="preserve">
+    <value>下载 {0} 版本资源，不执行安装。游戏更新仍需使用官方启动器，目前不支持官方启动器自动复用这些文件。&#xA;下载目录：{1}</value>
+  </data>
+  <data name="PreDownloadDialog_InsufficientSpace" xml:space="preserve">
+    <value>可用空间不足以完成剩余下载。</value>
+  </data>
 </root>

@@ -19,3 +19,4 @@ jobs:
           global-json-file: global.json
       - run: dotnet run --project tests/Nebula.Update.Tests -c Release
       - run: dotnet run --project tests/Nebula.Hypergryph.Tests -c Release
+      - run: dotnet run --project tests/Nebula.Predownload.Tests -c Release

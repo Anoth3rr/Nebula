@@ -62,6 +62,7 @@ public static partial class AppConfig
             sc.AddSingleton<GameNoticeClient>();
             sc.AddSingleton<HoYoPlayService>();
             sc.AddHttpClient<HypergryphClient>(client => client.Timeout = TimeSpan.FromSeconds(10));
+            sc.AddHttpClient<Nebula.Core.Predownload.GamePredownloadClient>(client => client.Timeout = TimeSpan.FromSeconds(30));
             sc.AddSingleton<HypergryphService>();
             sc.AddSingleton<GamePosterCache>();
             sc.AddSingleton<BackgroundService>();

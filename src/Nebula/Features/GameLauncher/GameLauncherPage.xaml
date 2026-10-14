@@ -540,7 +540,7 @@
                                    Grid.Column="0"
                                    IsPredownloadFinished="{x:Bind IsPredownloadFinished}"
                                    PredownloadCommand="{x:Bind PredownloadCommand}"
-                                   Visibility="{x:Bind IsDefaultPredownloadButtonVisible}" />
+                                   Visibility="{x:Bind IsPredownloadButtonEnabled}" />
 
             <!--  游戏时间  -->
             <sfp:PlayTimeButton x:Name="Button_PlayTime"

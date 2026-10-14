@@ -108,6 +108,19 @@ internal partial class GameInstallHelper
         return result;
     }
 
+    internal async Task AcquireDownloadPermitAsync(int bytes, CancellationToken token)
+    {
+        // 每次申请不超过限速器最小桶容量。
+        while (bytes > 0)
+        {
+            int count = Math.Min(bytes, BUFFER_SIZE);
+            using var lease = await _rateLimiter.AcquireAsync(count, token);
+            if (!lease.IsAcquired)
+                throw new IOException("Download rate limiter is unavailable.");
+            bytes -= count;
+        }
+    }
+
 
 
     /// <summary>

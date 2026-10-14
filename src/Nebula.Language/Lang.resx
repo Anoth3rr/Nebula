@@ -2729,4 +2729,10 @@ You are welcome to submit the exported data to the following repository:</value>
   <data name="LauncherPage_OpenOfficialWebsite" xml:space="preserve">
     <value>Visit official website</value>
   </data>
+  <data name="PreDownloadDialog_CacheNotice" xml:space="preserve">
+    <value>Download resources for version {0} only; installation is not performed. Keep using the official launcher to update the game. Automatic reuse of these files by the official launcher is not supported.&#xA;Download folder: {1}</value>
+  </data>
+  <data name="PreDownloadDialog_InsufficientSpace" xml:space="preserve">
+    <value>There is not enough free space for the remaining download.</value>
+  </data>
 </root>

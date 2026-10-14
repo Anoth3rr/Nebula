@@ -23,6 +23,8 @@ namespace Nebula.Language {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Lang {
+        public static string PreDownloadDialog_CacheNotice => ResourceManager.GetString("PreDownloadDialog_CacheNotice", resourceCulture);
+        public static string PreDownloadDialog_InsufficientSpace => ResourceManager.GetString("PreDownloadDialog_InsufficientSpace", resourceCulture);
         public static string Update_AutomaticallyCheck => ResourceManager.GetString("Update_AutomaticallyCheck", resourceCulture);
         public static string Update_AutomaticallyInstall => ResourceManager.GetString("Update_AutomaticallyInstall", resourceCulture);
         public static string Update_AutomaticallyInstallDescription => ResourceManager.GetString("Update_AutomaticallyInstallDescription", resourceCulture);

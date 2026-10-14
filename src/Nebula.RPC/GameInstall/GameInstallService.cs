@@ -5,6 +5,7 @@ using Polly;
 using Polly.Retry;
 using Nebula.Core;
 using Nebula.Core.HoYoPlay;
+using Nebula.Core.Predownload;
 using Nebula.RPC.Env;
 using System;
 using System.Collections.Concurrent;
@@ -13,6 +14,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -219,48 +221,57 @@ internal class GameInstallService
                 HardLinkPath: {hardLinkPath}
                 """, context.Operation, context.GameId.Id, context.GameId.GameBiz, context.InstallPath, context.AudioLanguage, context.HardLinkPath);
             Directory.CreateDirectory(context.InstallPath);
-            GamePackageService gamePackageService = _serviceProvider.GetRequiredService<GamePackageService>();
-            if (context.AudioLanguage is not AudioLanguage.None)
+            if (!context.GameId.GameBiz.IsHoYoPlayGame())
             {
-                await gamePackageService.SetAudioLanguageAsync(context.GameId, context.InstallPath, context.AudioLanguage, cancellationToken);
-            }
-            if (context.TaskFiles is null)
-            {
-                await gamePackageService.PrepareGamePackageAsync(context, cancellationToken);
-            }
-
-            foreach (string item in Directory.GetFiles(context.InstallPath, "*", SearchOption.AllDirectories))
-            {
-                // 设置所有文件为正常状态，防止遇到只读文件报错
-                File.SetAttributes(item, FileAttributes.Normal);
-            }
-
-            if (context.Operation is GameInstallOperation.Install)
-            {
-                // 安装
-                await ExecuteInstallTaskAsync(context, cancellationToken);
-            }
-            else if (context.Operation is GameInstallOperation.Update)
-            {
-                // 更新
-                await ExecuteUpdateTaskAsnyc(context, cancellationToken);
-            }
-            else if (context.Operation is GameInstallOperation.Predownload)
-            {
-                // 预下载
-                await ExecutePredownloadTaskAsync(context, cancellationToken);
-            }
-            else if (context.Operation is GameInstallOperation.Repair)
-            {
-                // 修复
-                await ExecuteRepairTaskAsync(context, cancellationToken);
+                if (context.Operation != GameInstallOperation.Predownload)
+                    throw new NotSupportedException("This provider only supports predownload.");
+                await ExecuteExternalPredownloadAsync(context, cancellationToken);
             }
             else
             {
-                _logger.LogWarning("GameInstallTask ({GameBiz}): Unsupported Operation: {operation}", context.GameId.GameBiz, context.Operation);
-            }
+                GamePackageService gamePackageService = _serviceProvider.GetRequiredService<GamePackageService>();
+                if (context.AudioLanguage is not AudioLanguage.None)
+                {
+                    await gamePackageService.SetAudioLanguageAsync(context.GameId, context.InstallPath, context.AudioLanguage, cancellationToken);
+                }
+                if (context.TaskFiles is null)
+                {
+                    await gamePackageService.PrepareGamePackageAsync(context, cancellationToken);
+                }
 
-            ClearDeprecatedFiles(context);
+                foreach (string item in Directory.GetFiles(context.InstallPath, "*", SearchOption.AllDirectories))
+                {
+                    // 设置所有文件为正常状态，防止遇到只读文件报错
+                    File.SetAttributes(item, FileAttributes.Normal);
+                }
+
+                if (context.Operation is GameInstallOperation.Install)
+                {
+                    // 安装
+                    await ExecuteInstallTaskAsync(context, cancellationToken);
+                }
+                else if (context.Operation is GameInstallOperation.Update)
+                {
+                    // 更新
+                    await ExecuteUpdateTaskAsnyc(context, cancellationToken);
+                }
+                else if (context.Operation is GameInstallOperation.Predownload)
+                {
+                    // 预下载
+                    await ExecutePredownloadTaskAsync(context, cancellationToken);
+                }
+                else if (context.Operation is GameInstallOperation.Repair)
+                {
+                    // 修复
+                    await ExecuteRepairTaskAsync(context, cancellationToken);
+                }
+                else
+                {
+                    _logger.LogWarning("GameInstallTask ({GameBiz}): Unsupported Operation: {operation}", context.GameId.GameBiz, context.Operation);
+                }
+
+                ClearDeprecatedFiles(context);
+            }
 
             context.State = GameInstallState.Finish;
             _logger.LogInformation("GameInstallTask Finished, GameBiz: {game_biz}, Operation: {operation}", context.GameId.GameBiz, context.Operation);
@@ -627,6 +638,32 @@ internal class GameInstallService
         GamePackageService gamePackageService = _serviceProvider.GetRequiredService<GamePackageService>();
         string value = $"{context.LocalGameVersion},{context.PredownloadVersion},{context.AudioLanguage}";
         await SetGameConfigIniAsync(context, ("predownload", value));
+    }
+
+    private async Task ExecuteExternalPredownloadAsync(GameInstallContext context, CancellationToken cancellationToken)
+    {
+        using HttpClient client = _serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(30);
+        var source = new GamePredownloadClient(client);
+        var plan = await source.GetAsync(context.GameId.GameBiz, context.InstallPath, cancellationToken)
+            ?? throw new InvalidOperationException("No predownload package is currently available.");
+        context.PredownloadVersion = plan.Version;
+        context.Progress_DownloadTotalBytes = plan.DownloadSize;
+        context.Progress_DownloadFinishBytes = 0;
+        context.State = GameInstallState.Downloading;
+        var transfer = new PredownloadFileTransfer(client);
+        var options = new ParallelOptions { CancellationToken = cancellationToken, MaxDegreeOfParallelism = 4 };
+        await Parallel.ForEachAsync(plan.Files, options, async (file, token) =>
+        {
+            string path = GamePredownloadCache.GetFilePath(plan, context.InstallPath, file);
+            await _polly.ExecuteAsync(async retryToken => await transfer.DownloadAsync(file, path,
+                (bytes, networkBytes) =>
+                {
+                    Interlocked.Add(ref context._progress_DownloadFinishBytes, bytes);
+                    Interlocked.Add(ref context.networkDownloadBytes, networkBytes);
+                }, _gameInstallHelper.AcquireDownloadPermitAsync, retryToken), token);
+        });
+        await GamePredownloadCache.MarkFinishedAsync(plan, context.InstallPath, cancellationToken);
     }
 
 

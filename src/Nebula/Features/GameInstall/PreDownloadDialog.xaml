@@ -48,7 +48,8 @@
                         <Run Text="{x:Bind PackageSizeText}" />
                     </TextBlock>
                     <!--  解压占用空间  -->
-                    <TextBlock FontSize="12"
+                    <TextBlock x:Name="TextBlock_UnzipSpace"
+                               FontSize="12"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                IsTextScaleFactorEnabled="False"
                                Text="">
@@ -82,6 +83,19 @@
 
 
             <!--  预下载不可用  -->
+            <TextBlock x:Name="TextBlock_CacheNotice"
+                       Margin="1,8,1,0"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       IsTextSelectionEnabled="True"
+                       Visibility="Collapsed" />
+            <TextBlock x:Name="TextBlock_InsufficientSpace"
+                       Margin="1,8,1,0"
+                       FontSize="12"
+                       Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                       Text="{x:Bind lang:Lang.PreDownloadDialog_InsufficientSpace}"
+                       TextWrapping="Wrap"
+                       Visibility="Collapsed" />
             <TextBlock x:Name="TextBlock_PredownloadUnavailable"
                        Margin="1,8,1,0"
                        FontSize="12"

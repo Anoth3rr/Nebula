@@ -6,6 +6,7 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Nebula.Core;
 using Nebula.Core.HoYoPlay;
+using Nebula.Core.Predownload;
 using Nebula.Features.Background;
 using Nebula.Features.CloudGame;
 using Nebula.Features.GameInstall;
@@ -22,6 +23,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using CancellationTokenSource = System.Threading.CancellationTokenSource;
 using System.Threading.Tasks;
 using System.Timers;
 using Windows.ApplicationModel.DataTransfer;
@@ -51,6 +53,8 @@ public sealed partial class GameLauncherPage : PageBase
 
 
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _dispatchTimer;
+    private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _predownloadRefreshTimer;
+    private CancellationTokenSource? _predownloadCancellation;
 
 
     public GameLauncherPage()
@@ -59,12 +63,16 @@ public sealed partial class GameLauncherPage : PageBase
         _dispatchTimer = DispatcherQueue.CreateTimer();
         _dispatchTimer.Interval = TimeSpan.FromMilliseconds(100);
         _dispatchTimer.Tick += UpdateGameInstallTaskProgress;
+        _predownloadRefreshTimer = DispatcherQueue.CreateTimer();
+        _predownloadRefreshTimer.Interval = TimeSpan.FromMinutes(5);
+        _predownloadRefreshTimer.Tick += (_, _) => _ = RefreshPredownloadAsync();
     }
 
 
 
     protected override void OnLoaded()
     {
+        _predownloadRefreshTimer.Start();
         UpdateHypergryphLauncherView();
         InitializeGameFeature();
         OpenGameLauncherSettingDialogCommand.NotifyCanExecuteChanged();
@@ -85,7 +93,6 @@ public sealed partial class GameLauncherPage : PageBase
     {
         OnPropertyChanged(nameof(IsHypergryphLauncherView));
         OnPropertyChanged(nameof(IsDefaultLauncherView));
-        OnPropertyChanged(nameof(IsDefaultPredownloadButtonVisible));
     }
 
 
@@ -95,12 +102,12 @@ public sealed partial class GameLauncherPage : PageBase
     public bool IsDefaultLauncherView => !IsHypergryphLauncherView;
 
 
-    public bool IsDefaultPredownloadButtonVisible => IsDefaultLauncherView && IsPredownloadButtonEnabled;
-
-
-
     protected override void OnUnloaded()
     {
+        _predownloadRefreshTimer.Stop();
+        _predownloadCancellation?.Cancel();
+        _predownloadCancellation?.Dispose();
+        _predownloadCancellation = null;
         WeakReferenceMessenger.Default.UnregisterAll(this);
         _dispatchTimer.Tick -= UpdateGameInstallTaskProgress;
         _dispatchTimer.Stop();
@@ -261,17 +268,7 @@ public sealed partial class GameLauncherPage : PageBase
     /// <summary>
     /// 预下载按钮是否可用
     /// </summary>
-    public bool IsPredownloadButtonEnabled
-    {
-        get;
-        set
-        {
-            if (SetProperty(ref field, value))
-            {
-                OnPropertyChanged(nameof(IsDefaultPredownloadButtonVisible));
-            }
-        }
-    }
+    public bool IsPredownloadButtonEnabled { get; set => SetProperty(ref field, value); }
 
     /// <summary>
     /// 预下载是否完成
@@ -285,9 +282,6 @@ public sealed partial class GameLauncherPage : PageBase
     private Version? latestGameVersion;
 
 
-    private Version? predownloadGameVersion;
-
-
     private bool isGameExeExists;
 
     private GameInfo? GetCurrentCatalogInfo() => CurrentGameBiz.IsHypergryphCatalogGame()
@@ -297,6 +291,7 @@ public sealed partial class GameLauncherPage : PageBase
 
     private async void CheckGameVersion()
     {
+        _ = RefreshPredownloadAsync();
         try
         {
             if (GameCatalogAction.GetDisplayOnlyState(CurrentGameBiz, GetCurrentCatalogInfo()) is GameState catalogState)
@@ -331,21 +326,77 @@ public sealed partial class GameLauncherPage : PageBase
                 return;
             }
             await CheckGameRunningAsync();
-            (latestGameVersion, predownloadGameVersion) = await _gameLauncherService.GetLatestGameVersionAsync(CurrentGameId);
+            (latestGameVersion, _) = await _gameLauncherService.GetLatestGameVersionAsync(CurrentGameId);
             if (latestGameVersion > localGameVersion)
             {
                 GameState = GameState.UpdateGame;
                 return;
             }
-            if (predownloadGameVersion > localGameVersion)
-            {
-                IsPredownloadButtonEnabled = true;
-                IsPredownloadFinished = await _gamePackageService.CheckPreDownloadFinishedAsync(CurrentGameId);
-            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Check game version");
+        }
+    }
+
+    private async Task RefreshPredownloadAsync()
+    {
+        _predownloadCancellation?.Cancel();
+        _predownloadCancellation?.Dispose();
+        _predownloadCancellation = new CancellationTokenSource();
+        var token = _predownloadCancellation.Token;
+        var gameId = new GameId { Id = CurrentGameId.Id, GameBiz = CurrentGameBiz };
+        IsPredownloadButtonEnabled = false;
+        IsPredownloadFinished = false;
+        Button_Predownload.ResetState();
+        try
+        {
+            var task = _gameInstallService.GetGameInstallTask(gameId);
+            if (task is not null && task.State is not GameInstallState.Finish and not GameInstallState.Stop)
+            {
+                if (task.Operation is GameInstallOperation.Predownload)
+                {
+                    IsPredownloadButtonEnabled = true;
+                    Button_Predownload.UpdateGameInstallTaskState(task);
+                }
+                return;
+            }
+            string? path = GameLauncherService.GetGameInstallPath(gameId, out bool storageRemoved);
+            if (!gameId.GameBiz.IsKnown() || path is null || storageRemoved
+                || !await _gameLauncherService.IsGameExeExistsAsync(gameId))
+                return;
+            bool available, finished = false;
+            if (gameId.GameBiz.IsHoYoPlayGame())
+            {
+                var localVersion = await _gameLauncherService.GetLocalGameVersionAsync(gameId, path);
+                if (localVersion is null)
+                    return;
+                var config = await _hoYoPlayService.GetGameConfigAsync(gameId, token);
+                if (config is null)
+                    return;
+                available = config.DefaultDownloadMode is DownloadMode.DOWNLOAD_MODE_CHUNK or DownloadMode.DOWNLOAD_MODE_LDIFF
+                    ? HoYoPlayPredownload.IsAvailable(await _hoYoPlayService.GetGameBranchAsync(gameId, token), localVersion)
+                    : HoYoPlayPredownload.IsAvailable(await _hoYoPlayService.GetGamePackageAsync(gameId, token), localVersion);
+                if (available)
+                    finished = await _gamePackageService.CheckPreDownloadFinishedAsync(gameId, path);
+            }
+            else
+            {
+                var plan = await AppConfig.GetService<GamePredownloadClient>().GetAsync(gameId.GameBiz, path, token);
+                available = plan is not null;
+                if (plan is not null)
+                    finished = await GamePredownloadCache.IsFinishedAsync(plan, path, token);
+            }
+            token.ThrowIfCancellationRequested();
+            if (gameId != CurrentGameId)
+                return;
+            IsPredownloadButtonEnabled = available;
+            IsPredownloadFinished = finished;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Check predownload availability ({GameBiz})", gameId.GameBiz);
         }
     }
 
@@ -766,6 +817,7 @@ public sealed partial class GameLauncherPage : PageBase
         if (message.InstallTask.GameId == CurrentGameId)
         {
             _gameInstallTask = message.InstallTask;
+            _ = RefreshPredownloadAsync();
             _dispatchTimer.Start();
         }
     }
