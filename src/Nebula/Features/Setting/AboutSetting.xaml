@@ -133,7 +133,7 @@
                 </Hyperlink>
             </TextBlock>
             <TextBlock Margin="0,8,0,0" HorizontalAlignment="Left">
-                <Hyperlink NavigateUri="https://donate.scighost.com" UnderlineStyle="None">
+                <Hyperlink NavigateUri="https://donate.anoth3r.top" UnderlineStyle="None">
                     <Run FontWeight="Bold"
                          Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
                          Text="{x:Bind lang:Lang.SettingPage_Donate}" />
