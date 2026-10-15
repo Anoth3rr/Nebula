@@ -26,6 +26,18 @@ Check("Separate explicit quality value is preserved", GameBiz.wutheringwaves_cn,
 Check("Similar argument names do not suppress the default", GameBiz.wutheringwaves_cn, "-krqlv-extra=sd", "-krqlv-extra=sd -krqlv=hd");
 Check("A flag inside a quoted value is not a quality override", GameBiz.wutheringwaves_cn,
     "-log=\"notes -krqlv=sd\"", "-log=\"notes -krqlv=sd\" -krqlv=hd");
+Check("Official Arknights CN launch arguments are supplied", GameBiz.arknights_cn, null,
+    "-launcher_lang=zh-cn -launcher_sub_channel=837");
+Check("Official Arknights CN launch arguments preserve custom arguments", GameBiz.arknights_cn,
+    "-popupwindow", "-popupwindow -launcher_lang=zh-cn -launcher_sub_channel=837");
+Check("Existing Arknights launcher arguments are not duplicated", GameBiz.arknights_cn,
+    "-launcher_lang=zh-cn -launcher_sub_channel=837", "-launcher_lang=zh-cn -launcher_sub_channel=837");
+Check("Custom Arknights language is preserved", GameBiz.arknights_cn,
+    "-launcher_lang=en-us", "-launcher_lang=en-us -launcher_sub_channel=837");
+Check("Bilibili Arknights keeps its channel arguments", GameBiz.arknights_bilibili,
+    null, null);
+Check("Global Arknights keeps its channel arguments", GameBiz.arknights_global,
+    "-windowed", "-windowed");
 Check("Third-party tools keep their own command line", GameBiz.wutheringwaves_cn, " --profile custom ", "--profile custom", thirdPartyTool: true);
 Check("Third-party tools with no arguments receive no default", GameBiz.wutheringwaves_cn, null, null, thirdPartyTool: true);
 Check("Other games with no arguments receive no default", GameBiz.hk4e_cn, null, null);
