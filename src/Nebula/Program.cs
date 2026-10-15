@@ -4,6 +4,7 @@ using System.Collections;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using Nebula.Features.GameLauncher;
 
 namespace Nebula;
 
@@ -21,6 +22,12 @@ public static class Program
     [global::System.STAThreadAttribute]
     static void Main(string[] args)
     {
+        if (args.Length > 0 && args[0] == EndfieldLauncher.HelperCommand)
+        {
+            Environment.ExitCode = EndfieldLauncher.RunHelperAsync(args).GetAwaiter().GetResult();
+            return;
+        }
+
         AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
         Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.Normal;
 

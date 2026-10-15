@@ -14,11 +14,10 @@ internal static partial class GameLaunchArguments
             return arguments;
         }
 
-        if (gameBiz.Value is GameBiz.arknights_cn)
+        if (gameBiz.Value is GameBiz.arknights_cn or GameBiz.endfield_cn)
         {
-            // The Hypergryph launcher passes these values to the official CN client.
-            // Arknights uses the launcher sub-channel to distinguish an official start
-            // from a direct executable launch.
+            // Observed in the official launcher command lines for both CN clients.
+            // Endfield additionally needs an official launcher parent process.
             return AppendMissingArguments(
                 arguments,
                 ("-launcher_lang", "-launcher_lang=zh-cn"),

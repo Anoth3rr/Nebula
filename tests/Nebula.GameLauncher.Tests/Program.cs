@@ -38,9 +38,32 @@ Check("Bilibili Arknights keeps its channel arguments", GameBiz.arknights_bilibi
     null, null);
 Check("Global Arknights keeps its channel arguments", GameBiz.arknights_global,
     "-windowed", "-windowed");
+Check("Official Endfield CN launch arguments are supplied", GameBiz.endfield_cn, null,
+    "-launcher_lang=zh-cn -launcher_sub_channel=837");
+Check("Blank Endfield CN settings use launcher defaults", GameBiz.endfield_cn, " \t ",
+    "-launcher_lang=zh-cn -launcher_sub_channel=837");
+Check("Endfield custom graphics arguments are retained", GameBiz.endfield_cn, " -force-d3d11 -windowed ",
+    "-force-d3d11 -windowed -launcher_lang=zh-cn -launcher_sub_channel=837");
+Check("Endfield existing defaults are not duplicated", GameBiz.endfield_cn,
+    "-launcher_lang=zh-cn -launcher_sub_channel=837", "-launcher_lang=zh-cn -launcher_sub_channel=837");
+Check("Endfield explicit language and channel overrides are retained", GameBiz.endfield_cn,
+    "-launcher_lang=en-us -launcher_sub_channel=1", "-launcher_lang=en-us -launcher_sub_channel=1");
+Check("Endfield case and quotes do not duplicate a channel", GameBiz.endfield_cn,
+    "\"-LAUNCHER_SUB_CHANNEL=837\"", "\"-LAUNCHER_SUB_CHANNEL=837\" -launcher_lang=zh-cn");
+Check("Endfield separate language value is retained", GameBiz.endfield_cn,
+    "-launcher_lang en-us", "-launcher_lang en-us -launcher_sub_channel=837");
+Check("Similar Endfield argument does not suppress channel default", GameBiz.endfield_cn,
+    "-launcher_sub_channel-extra=1", "-launcher_sub_channel-extra=1 -launcher_lang=zh-cn -launcher_sub_channel=837");
+Check("Endfield quoted text is not a launcher flag", GameBiz.endfield_cn,
+    "-log=\"notes -launcher_sub_channel=1\"", "-log=\"notes -launcher_sub_channel=1\" -launcher_lang=zh-cn -launcher_sub_channel=837");
+Check("Endfield global does not receive CN channel defaults", GameBiz.endfield_global, null, null);
+Check("Endfield global custom arguments are retained", GameBiz.endfield_global, " -force-d3d11 ", "-force-d3d11");
+Check("Endfield third-party tools keep their command line", GameBiz.endfield_cn,
+    " --profile custom ", "--profile custom", thirdPartyTool: true);
+Check("Endfield third-party tools receive no default", GameBiz.endfield_cn, null, null, thirdPartyTool: true);
 Check("Third-party tools keep their own command line", GameBiz.wutheringwaves_cn, " --profile custom ", "--profile custom", thirdPartyTool: true);
 Check("Third-party tools with no arguments receive no default", GameBiz.wutheringwaves_cn, null, null, thirdPartyTool: true);
 Check("Other games with no arguments receive no default", GameBiz.hk4e_cn, null, null);
-Check("Other games retain their arguments", GameBiz.endfield_cn, " -windowed ", "-windowed");
+Check("Other games retain their arguments", GameBiz.hk4e_cn, " -windowed ", "-windowed");
 
 Console.WriteLine($"{passed} game launch argument checks passed.");

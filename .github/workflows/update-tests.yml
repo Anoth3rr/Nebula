@@ -20,3 +20,5 @@ jobs:
       - run: dotnet run --project tests/Nebula.Update.Tests -c Release
       - run: dotnet run --project tests/Nebula.Hypergryph.Tests -c Release
       - run: dotnet run --project tests/Nebula.Predownload.Tests -c Release
+      - run: dotnet run --project tests/Nebula.GameLauncher.Tests -c Release
+      - run: dotnet run --project tests/Nebula.EndfieldLauncher.Tests -c Release

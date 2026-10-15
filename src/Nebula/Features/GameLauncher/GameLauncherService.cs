@@ -448,6 +448,14 @@ internal partial class GameLauncherService
             {
                 GameSettingService.SetGenshinEnableHDR(gameId.GameBiz, AppConfig.EnableGenshinHDR);
             }
+            if (EndfieldLauncher.RequiresOfficialLauncher(gameId.GameBiz, thirdPartyTool))
+            {
+                _logger.LogInformation("Start Endfield with official launcher parent ({biz}), path: {exe}", gameId, exe);
+                var endfieldProcess = await EndfieldLauncher.StartAsync(gameId.GameBiz, exe, arg, AppConfig.NebulaExecutePath);
+                _logger.LogInformation("Started Endfield ({biz}), pid: {pid}", gameId, endfieldProcess.Id);
+                await _playTimeService.StartProcessToLogAsync(gameId, endfieldProcess.Id);
+                return endfieldProcess;
+            }
             if (!thirdPartyTool && AppConfig.StartGameWithCMD)
             {
                 arg = $"""/c start "" /d "{Path.GetDirectoryName(exe)}" "{exe}" {arg}""";
